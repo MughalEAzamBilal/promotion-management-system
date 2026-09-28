@@ -1,0 +1,92 @@
+# =====================================================================
+# Git Ignore Configuration - Teacher Promotion Portal
+# School Education Department, Government of the Punjab
+# =====================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables & Secrets (NEVER COMMIT PRODUCTION SECRETS)
+.env
+.env.local
+.env.*.local
+
+# Database temporary files & locks
+instance/*.db-journal
+instance/*.db-wal
+instance/*.db-shm
+
+# User Uploads & Generated Backups (Keep folders, ignore uploaded contents)
+uploads/*
+!uploads/.gitkeep
+backups/*
+!backups/.gitkeep
+
+# Unit test / coverage reports
+.pytest_cache/
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+
+# Logs and databases
+*.log
+logs/
+
+# Operating System specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# IDE & Editor Settings
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# Temporary / Debug artifacts
+*_BurstDebugInformation_DoNotShip/
+*DoNotShip*

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}System Settings - Provincial Administrator{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <h1 class="page-title"><i class="bi bi-sliders text-success me-2"></i> Application Configuration &amp; Branding</h1>
+    <p class="page-subtitle">Manage portal titles, notices, announcements, and maintenance controls.</p>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white fw-bold">
+          <i class="bi bi-gear-fill text-primary me-2"></i> Global Portal Settings
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('superadmin.system_settings') }}">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Application Title</label>
+              <input type="text" name="app_title" class="form-control" value="{{ settings_map.get('app_title', 'Teacher Promotion Portal') }}" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Departmental Authority Line</label>
+              <input type="text" name="dept_name" class="form-control" value="{{ settings_map.get('department_name', 'School Education Department') }}" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Public Notice / Banner Text (Optional)</label>
+              <textarea name="announcement" class="form-control" rows="3" placeholder="Important announcement shown on all portal dashboards...">{{ settings_map.get('announcement_banner', '') }}</textarea>
+            </div>
+            <div class="mb-4">
+              <label class="form-label small fw-semibold">System Maintenance Mode</label>
+              <select name="maintenance_mode" class="form-select">
+                <option value="false" {% if settings_map.get('maintenance_mode') != 'true' %}selected{% endif %}>Disabled (Normal Operational Mode)</option>
+                <option value="true" {% if settings_map.get('maintenance_mode') == 'true' %}selected{% endif %}>Enabled (Maintenance Mode Active)</option>
+              </select>
+            </div>
+            <div class="text-end">
+              <button type="submit" class="btn btn-punjab px-4 fw-semibold">
+                <i class="bi bi-save me-1"></i> Save Configuration
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

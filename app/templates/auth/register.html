@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Admin Registration - School Education Department{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+      
+      <!-- Official Header -->
+      <div class="text-center mb-4">
+        <span class="gov-logo-badge fs-6 px-3 py-1 mb-2 d-inline-block shadow-sm">SCHOOL EDUCATION DEPARTMENT</span>
+        <h2 class="fw-bold mt-1" style="color: var(--punjab-dark);">Department Administrator Registration</h2>
+        <p class="text-muted small">School Education Department &bull; District Operations &amp; Promotion Scrutiny Authority</p>
+      </div>
+
+      <!-- Registration Card -->
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-punjab text-white py-3 px-4 d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="mb-0 fw-semibold"><i class="bi bi-person-badge-fill me-2"></i> Authorized Officer Account Setup</h5>
+            <small class="text-white-50">Create administrative credentials for district management</small>
+          </div>
+          <span class="badge bg-gold text-dark fw-bold px-3 py-2 text-uppercase">Role: Admin</span>
+        </div>
+
+        <div class="card-body p-4 p-md-5 bg-white">
+          
+          <!-- Explicit Administrative Notice -->
+          <div class="alert alert-info border-0 shadow-sm d-flex align-items-start gap-2 mb-4 small">
+            <i class="bi bi-info-circle-fill fs-5 text-primary flex-shrink-0 mt-1"></i>
+            <div>
+              <strong>Administrative Scope Notice:</strong> All public registrations through this portal are strictly created as <strong>Department Administrators (ADMIN)</strong> authorized to manage district seniority rolls, teacher verifications, and DPC promotion rolls. Teachers do not need to register—they log in directly using their 13-digit CNIC.
+            </div>
+          </div>
+
+          <form method="POST" action="{{ url_for('auth.register') }}">
+            
+            <div class="row g-3 mb-3">
+              <!-- Full Name & Designation -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Full Name &amp; Official Designation <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-fill text-muted"></i></span>
+                  <input type="text" name="full_name" class="form-control border-start-0" placeholder="e.g. Tariq Mehmood (DEO SE)" value="{{ form_data.full_name or '' }}" required autofocus>
+                </div>
+              </div>
+
+              <!-- Official Username -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Official Username <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-at text-muted"></i></span>
+                  <input type="text" name="username" class="form-control border-start-0" placeholder="e.g. admin_multan_deo" value="{{ form_data.username or '' }}" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <!-- CNIC -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">National CNIC <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-heading text-muted"></i></span>
+                  <input type="text" name="cnic" class="form-control border-start-0" placeholder="35201-1234567-1" value="{{ form_data.cnic or '' }}" required>
+                </div>
+                <small class="form-text text-muted">13 digits with dashes.</small>
+              </div>
+
+              <!-- Assigned District -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Assigned District <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-geo-alt-fill text-danger"></i></span>
+                  <select name="district" class="form-select border-start-0" required>
+                    <option value="">-- Select District Jurisdiction --</option>
+                    {% for d in punjab_districts %}
+                      <option value="{{ d }}" {% if form_data.district == d %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <!-- Mobile Phone -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Official Mobile / Contact No <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-telephone-fill text-muted"></i></span>
+                  <input type="text" name="phone" class="form-control border-start-0" placeholder="03001234567" value="{{ form_data.phone or '' }}" required>
+                </div>
+              </div>
+
+              <!-- Email Address -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Official Email Address <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope-fill text-muted"></i></span>
+                  <input type="email" name="email" class="form-control border-start-0" placeholder="officer@sed.punjab.gov.pk" value="{{ form_data.email or '' }}" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <!-- Password -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Portal Access Password <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock-fill text-muted"></i></span>
+                  <input type="password" name="password" class="form-control border-start-0" placeholder="Minimum 6 characters" required>
+                </div>
+              </div>
+
+              <!-- Confirm Password -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Confirm Password <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-lock-fill text-muted"></i></span>
+                  <input type="password" name="confirm_password" class="form-control border-start-0" placeholder="Re-enter password" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- Undertaking Checkbox -->
+            <div class="form-check mb-4 bg-light p-3 rounded border">
+              <input class="form-check-input ms-0 me-2" type="checkbox" id="adminConsent" required>
+              <label class="form-check-label small text-secondary" for="adminConsent">
+                I solemnly affirm that I am an authorized officer/operator of the School Education Department, and will handle all seniority and promotion records strictly under the SED Service Rules 2014.
+              </label>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="d-grid mb-3">
+              <button type="submit" class="btn btn-punjab py-2 fw-bold fs-6">
+                <i class="bi bi-person-check-fill me-1"></i> Register as Department Administrator
+              </button>
+            </div>
+
+          </form>
+
+          <div class="text-center pt-3 border-top mt-4 small">
+            <span class="text-muted">Already have an administrator or teacher account?</span>
+            <a href="{{ url_for('auth.login') }}" class="text-decoration-none fw-bold text-success ms-1">
+              Sign In to Portal &rarr;
+            </a>
+          </div>
+
+        </div>
+
+        <div class="card-footer bg-light p-3 text-center small text-muted">
+          Need account recovery? <a href="{{ url_for('auth.forgot_password') }}" class="text-decoration-none fw-semibold text-warning">Submit Forgot Password Claim</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

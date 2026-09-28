@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Database Backups - Provincial Administrator{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-database-down text-success me-2"></i> Database Backups &amp; Snapshots</h1>
+        <p class="page-subtitle">Generate point-in-time database snapshots and download safe local backup copies.</p>
+      </div>
+      <div>
+        <form method="POST" action="{{ url_for('superadmin.backups') }}" class="d-inline">
+          <input type="hidden" name="action" value="create_backup">
+          <button type="submit" class="btn btn-punjab btn-sm">
+            <i class="bi bi-camera-fill me-1"></i> Create Snapshot Now
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white fw-bold">
+      <i class="bi bi-archive-fill text-secondary me-2"></i> Available Database Snapshots
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit mb-0">
+          <thead>
+            <tr>
+              <th style="width: 45%;">Database Snapshot File</th>
+              <th style="width: 25%;">Created Timestamp</th>
+              <th style="width: 15%;">File Size</th>
+              <th style="width: 15%;" class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in backup_files %}
+            <tr>
+              <td><code class="fw-bold text-dark">{{ b.filename }}</code></td>
+              <td><i class="bi bi-clock-history me-1 text-muted"></i>{{ b.created_at }}</td>
+              <td><span class="badge bg-light text-dark border">{{ b.size_mb }} MB</span></td>
+              <td class="text-center">
+                <a href="{{ url_for('superadmin.download_backup', filename=b.filename) }}" class="btn btn-sm btn-outline-success">
+                  <i class="bi bi-download me-1"></i> Download
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No backups generated yet. Click "Create Snapshot Now" above.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

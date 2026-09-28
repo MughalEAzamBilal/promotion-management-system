@@ -1,0 +1,434 @@
+{% extends 'base.html' %}
+{% block title %}My Qualifications - Teacher Portal{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <h1 class="page-title"><i class="bi bi-mortarboard-fill text-success me-2"></i> Academic &amp; Professional Qualifications</h1>
+        <p class="page-subtitle">View officially verified degrees, edit records, and submit newly acquired educational credentials.</p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        {% if not teacher.is_data_verified_by_teacher %}
+          <button class="btn btn-warning btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#verifyDataModal">
+            <i class="bi bi-shield-check me-1"></i> Verify My Data
+          </button>
+        {% else %}
+          <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
+            <i class="bi bi-patch-check-fill me-1"></i> Data Verified &amp; Locked
+          </span>
+        {% endif %}
+        <button class="btn btn-punjab btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#newQualModal">
+          <i class="bi bi-plus-circle me-1"></i> Add Qualification
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+
+  <!-- Verification Notice Banner -->
+  {% if not teacher.is_data_verified_by_teacher %}
+  <div class="alert alert-warning border-0 shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 p-3 rounded-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-warning-subtle text-warning-emphasis p-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+      </div>
+      <div>
+        <strong class="text-dark d-block">Educational Data Self-Verification Pending</strong>
+        <span class="small text-muted">You can directly edit your existing qualifications or add new degrees. Once reviewed, click <strong>"Verify My Data"</strong> to finalize your official dossier.</span>
+      </div>
+    </div>
+    <div>
+      <button class="btn btn-warning btn-sm fw-bold shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#verifyDataModal">
+        <i class="bi bi-shield-check me-1"></i> Verify My Data
+      </button>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-success border-0 shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 p-3 rounded-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-success text-white p-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+        <i class="bi bi-check2-circle fs-5"></i>
+      </div>
+      <div>
+        <strong class="text-success-emphasis d-block">Educational Credentials Officially Verified &amp; Locked</strong>
+        <span class="small text-muted">Verified on {{ teacher.teacher_verified_at.strftime('%d-%b-%Y') if teacher.teacher_verified_at else 'Verified' }}. New degree additions are always allowed below. To update existing records, submit an official Correction Request.</span>
+      </div>
+    </div>
+    <div>
+      <a href="{{ url_for('teacher.correction_request') }}" class="btn btn-outline-success btn-sm shadow-sm">
+        <i class="bi bi-send-check me-1"></i> Correction Request
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+      <span>Recorded Educational Credentials ({{ teacher.qualifications|length }} on file)</span>
+      <span class="small text-muted font-monospace">New additions always permitted</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit mb-0 align-middle">
+          <thead>
+            <tr>
+              <th style="width: 21%;">Degree &amp; Category</th>
+              <th style="width: 17%;">Major Subject &amp; Division</th>
+              <th style="width: 17%;">Passing Year &amp; Board</th>
+              <th style="width: 25%;"><i class="bi bi-bell-fill text-warning me-1"></i> Data Audit &amp; Missing Values</th>
+              <th style="width: 10%;">Status</th>
+              <th style="width: 10%;" class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for q in teacher.qualifications %}
+            <tr class="{% if q.is_new %}table-success bg-opacity-25{% elif q.is_edited %}table-primary bg-opacity-25{% endif %}">
+              <td>
+                <div class="fw-bold text-dark">{{ q.degree_name }}</div>
+                <div class="d-flex align-items-center gap-1 mt-1 small">
+                  <span class="text-muted">{{ q.degree_level }}</span>
+                  {% if q.professional_qualification %}
+                    <span class="badge bg-info text-dark">Professional</span>
+                  {% else %}
+                    <span class="badge bg-light text-dark border">Academic</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div class="fw-semibold text-dark">{{ q.subject }}</div>
+                <div class="mt-1"><span class="badge bg-light text-dark border small">{{ q.division or 'Division N/A' }}</span></div>
+              </td>
+              <td>
+                <div class="fw-bold text-dark">{{ q.passing_year }}</div>
+                <div class="small text-muted">{{ q.board_university }}</div>
+              </td>
+
+              <!-- Missing Values / Notifiable Cell -->
+              <td class="{% if q.missing_fields %}bg-warning-subtle bg-opacity-25 border-start border-3 border-warning cell-missing-notice{% else %}bg-success-subtle bg-opacity-10{% endif %}">
+                {% if q.missing_fields %}
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.72rem;">
+                      <i class="bi bi-bell-fill text-danger me-1"></i> {{ q.missing_fields|length }} Missing Value{% if q.missing_fields|length > 1 %}s{% endif %}
+                    </span>
+                    {% if not teacher.is_data_verified_by_teacher %}
+                      <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#editQualModal_{{ q.id }}" class="small text-primary text-decoration-none fw-semibold" style="font-size: 0.70rem;" title="Fill Missing Fields">
+                        <i class="bi bi-pencil-fill me-1"></i>Add Now
+                      </a>
+                    {% endif %}
+                  </div>
+                  <div class="d-flex flex-wrap gap-1">
+                    {% for mf in q.missing_fields %}
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1" style="font-size: 0.67rem;">
+                        <i class="bi bi-x-circle me-1"></i>{{ mf }}
+                      </span>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div>
+                    <span class="badge bg-success text-white py-1 px-2" style="font-size: 0.72rem;">
+                      <i class="bi bi-check-circle-fill me-1"></i> 100% Complete
+                    </span>
+                    <div class="small text-muted mt-1" style="font-size: 0.68rem;">
+                      <i class="bi bi-check-all text-success me-1"></i>All credential values recorded
+                    </div>
+                  </div>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if q.is_new %}
+                  <div class="mb-1"><span class="badge bg-success text-white"><i class="bi bi-plus-circle me-1"></i>New Addition</span></div>
+                {% elif q.is_edited %}
+                  <div class="mb-1"><span class="badge bg-primary text-white"><i class="bi bi-pencil me-1"></i>Edited Record</span></div>
+                {% endif %}
+                {% if q.verification_status == 'Verified' %}
+                  <span class="badge badge-status-verified"><i class="bi bi-check-circle me-1"></i> Verified</span>
+                {% else %}
+                  <span class="badge badge-status-pending"><i class="bi bi-hourglass-split me-1"></i> Pending Verification</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                {% if not teacher.is_data_verified_by_teacher %}
+                  <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2" data-bs-toggle="modal" data-bs-target="#editQualModal_{{ q.id }}" title="Directly Edit Qualification">
+                    <i class="bi bi-pencil-square me-1"></i>Edit
+                  </button>
+                {% else %}
+                  <span class="badge bg-light text-muted border py-1 px-2" title="Direct edit locked after data verification">
+                    <i class="bi bi-lock-fill me-1"></i>Locked
+                  </span>
+                  <a href="{{ url_for('teacher.correction_request') }}" class="btn btn-outline-secondary btn-sm py-1 px-1 ms-1" title="Request official correction">
+                    <i class="bi bi-arrow-right"></i>
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-5">No qualifications recorded yet. Click "Add Qualification" to submit your degree.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Submit New Qualification -->
+<div class="modal fade" id="newQualModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('teacher.qualifications') }}">
+        <div class="modal-header bg-punjab text-white">
+          <h6 class="modal-title fw-bold"><i class="bi bi-mortarboard-fill me-1"></i> Submit Educational Qualification</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold">Degree Level <span class="text-danger">*</span></label>
+              <select name="degree_level" id="teacher_degree_level" class="form-select" required>
+                <option value="Matric">Matric / SSC (10-Year)</option>
+                <option value="Intermediate">Intermediate / HSSC (12-Year)</option>
+                <option value="Bachelor" selected>Bachelor / Pass (14-Year)</option>
+                <option value="BS-4Years">BS Honors (16-Year)</option>
+                <option value="Master">Master / MA / M.Sc (16-Year)</option>
+                <option value="Professional Teaching">Professional Teaching (B.Ed / M.Ed / ADE)</option>
+                <option value="M.Phil">M.Phil / MS (18-Year)</option>
+                <option value="PhD">Ph.D (Doctorate)</option>
+              </select>
+            </div>
+            <div class="col-md-7">
+              <label class="form-label small fw-semibold">Predefined Degree / Title <span class="text-danger">*</span></label>
+              <select id="teacher_degree_select" class="form-select" required>
+                <!-- Populated dynamically based on Level -->
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3" id="teacher_custom_title_container" style="display: none;">
+            <label class="form-label small fw-semibold">Enter Custom Degree Title</label>
+            <input type="text" name="degree_name" id="teacher_degree_name" class="form-control" placeholder="Type official degree name">
+          </div>
+
+          <!-- Predefined Subjects Checkbox Palette -->
+          <div class="mb-3 p-3 bg-light rounded border">
+            <label class="form-label small fw-bold text-success mb-2">
+              <i class="bi bi-check-square me-1"></i> Predefined Subjects (Tick to select single or combinations):
+            </label>
+            <div id="teacher_subjects_checkboxes" class="d-flex flex-wrap gap-1 mb-2">
+              <!-- Dynamically populated subject checkboxes -->
+            </div>
+            <label class="form-label small fw-semibold text-muted">Selected Major Subject(s) / Custom Edit <span class="text-danger">*</span></label>
+            <input type="text" name="subject" id="teacher_subject" class="form-control" placeholder="e.g. Physics, Chemistry, Mathematics" required>
+            <small class="text-muted">You can click the predefined checkboxes above or type custom combinations.</small>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Division / Grade</label>
+              <select name="division" class="form-select">
+                <option value="First">First Division (60%+)</option>
+                <option value="Second" selected>Second Division (45%-59%)</option>
+                <option value="Third">Third Division</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Passing Year <span class="text-danger">*</span></label>
+              <input type="number" name="passing_year" class="form-control" value="2018" min="1970" max="2030" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Board / University <span class="text-danger">*</span></label>
+              <input type="text" name="board_university" id="teacher_board_university" list="teacher_institutes_list" class="form-control" placeholder="Select or type university" required>
+              <datalist id="teacher_institutes_list">
+                <!-- Dynamically populated from catalog -->
+              </datalist>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Major Subject</label>
+              <input type="text" name="major_subject" class="form-control" placeholder="e.g. Physics / English">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Marks Obtained</label>
+              <input type="number" step="0.01" name="marks_obtained" class="form-control" placeholder="e.g. 850">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Total Marks</label>
+              <input type="number" step="0.01" name="total_marks" class="form-control" placeholder="e.g. 1100">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Roll / Registration Number</label>
+              <input type="text" name="registration_number" class="form-control" placeholder="Board / University Roll or Reg No">
+            </div>
+          </div>
+
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" name="professional_qualification" id="teacher_is_prof">
+            <label class="form-check-label small fw-semibold" for="teacher_is_prof">
+              This is a Professional Teaching Degree (B.Ed, M.Ed, ADE, B.S.Ed) prescribed under Punjab Service Rules 2014
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-punjab">Submit for Departmental Verification</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmation Popup to Verify & Lock Data -->
+<div class="modal fade" id="verifyDataModal" tabindex="-1" aria-labelledby="verifyDataModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow border-0">
+      <form method="POST" action="{{ url_for('teacher.verify_my_data') }}">
+        <input type="hidden" name="next_url" value="{{ request.url }}">
+        <div class="modal-header bg-warning text-dark py-3">
+          <h6 class="modal-title fw-bold" id="verifyDataModalLabel">
+            <i class="bi bi-shield-lock-fill me-1"></i> Confirm &amp; Finalize Data Verification
+          </h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="alert alert-warning border-start border-4 border-warning mb-3">
+            <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Irreversible Direct Edit Lock:</h6>
+            <p class="small mb-0" style="line-height: 1.45;">
+              <strong>Once you verify your data, you cannot change existing records directly</strong>, and all further updates or corrections must be submitted through an official <strong>Edit / Correction Request</strong>.
+            </p>
+          </div>
+          <p class="small text-secondary mb-3">
+            Do you solemnly declare that all educational credentials, degrees, subjects, passing years, and institutions on record are true, authentic, and complete according to your original certificates?
+          </p>
+          <div class="form-check p-2 bg-light rounded border">
+            <input class="form-check-input ms-1" type="checkbox" id="confirmDeclareCheck" required>
+            <label class="form-check-label small fw-semibold text-dark ps-2" for="confirmDeclareCheck">
+              I have thoroughly reviewed all my educational &amp; service records and confirm they are accurate.
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer py-2 px-3 bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel / Keep Reviewing</button>
+          <button type="submit" class="btn btn-warning btn-sm fw-bold">
+            <i class="bi bi-shield-check me-1"></i> Yes, Verify &amp; Lock My Data
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modals: Edit Existing Qualifications -->
+{% for q in teacher.qualifications %}
+<div class="modal fade" id="editQualModal_{{ q.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow">
+      <form method="POST" action="{{ url_for('teacher.edit_qualification', qual_id=q.id) }}">
+        <div class="modal-header bg-primary text-white py-2 px-3">
+          <h6 class="modal-title fw-bold">
+            <i class="bi bi-pencil-square me-1"></i> Edit Educational Credential: {{ q.degree_name }}
+          </h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3">
+          <div class="row g-3 mb-3">
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold">Degree Level <span class="text-danger">*</span></label>
+              <select name="degree_level" class="form-select form-select-sm" required>
+                <option value="Matric" {% if q.degree_level == 'Matric' %}selected{% endif %}>Matric / SSC (10-Year)</option>
+                <option value="Intermediate" {% if q.degree_level == 'Intermediate' %}selected{% endif %}>Intermediate / HSSC (12-Year)</option>
+                <option value="Bachelor" {% if q.degree_level == 'Bachelor' %}selected{% endif %}>Bachelor / Pass (14-Year)</option>
+                <option value="BS-4Years" {% if q.degree_level == 'BS-4Years' %}selected{% endif %}>BS Honors (16-Year)</option>
+                <option value="Master" {% if q.degree_level == 'Master' %}selected{% endif %}>Master / MA / M.Sc (16-Year)</option>
+                <option value="Professional Teaching" {% if q.degree_level == 'Professional Teaching' %}selected{% endif %}>Professional Teaching (B.Ed / M.Ed / ADE)</option>
+                <option value="M.Phil" {% if q.degree_level == 'M.Phil' %}selected{% endif %}>M.Phil / MS (18-Year)</option>
+                <option value="PhD" {% if q.degree_level == 'PhD' %}selected{% endif %}>Ph.D (Doctorate)</option>
+              </select>
+            </div>
+            <div class="col-md-7">
+              <label class="form-label small fw-semibold">Degree Title <span class="text-danger">*</span></label>
+              <input type="text" name="degree_name" class="form-control form-control-sm" value="{{ q.degree_name }}" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Subject / Stream <span class="text-danger">*</span></label>
+              <input type="text" name="subject" class="form-control form-control-sm" value="{{ q.subject }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Major Subject</label>
+              <input type="text" name="major_subject" class="form-control form-control-sm" value="{{ q.major_subject or q.subject }}">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Division / Grade</label>
+              <select name="division" class="form-select form-select-sm">
+                <option value="First" {% if q.division == 'First' %}selected{% endif %}>First Division (60%+)</option>
+                <option value="Second" {% if q.division == 'Second' %}selected{% endif %}>Second Division (45%-59%)</option>
+                <option value="Third" {% if q.division == 'Third' %}selected{% endif %}>Third Division</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Passing Year <span class="text-danger">*</span></label>
+              <input type="number" name="passing_year" class="form-control form-control-sm" value="{{ q.passing_year }}" min="1970" max="2030" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Board / University <span class="text-danger">*</span></label>
+              <input type="text" name="board_university" class="form-control form-control-sm" value="{{ q.board_university }}" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-2">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Registration / Roll No</label>
+              <input type="text" name="registration_number" class="form-control form-control-sm" value="{{ q.registration_number or '' }}" placeholder="Roll / Reg No">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Marks Obtained</label>
+              <input type="number" step="0.01" name="marks_obtained" class="form-control form-control-sm" value="{{ q.marks_obtained or '' }}" placeholder="e.g. 850">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Total Marks</label>
+              <input type="number" step="0.01" name="total_marks" class="form-control form-control-sm" value="{{ q.total_marks or '' }}" placeholder="e.g. 1100">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-2">
+            <div class="col-12 d-flex align-items-center pt-2">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="professional_qualification" id="edit_prof_{{ q.id }}" {% if q.professional_qualification %}checked{% endif %}>
+                <label class="form-check-label small fw-semibold" for="edit_prof_{{ q.id }}">
+                  Professional Teaching Degree (B.Ed / ADE / M.Ed)
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer py-2 px-3">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-check-circle me-1"></i> Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/qualifications_selector.js') }}"></script>
+{% endblock %}
+

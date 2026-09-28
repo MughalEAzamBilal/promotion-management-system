@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% block title %}My Profile - Teacher Portal{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-person-badge text-success me-2"></i> Official Teacher Profile</h1>
+        <p class="page-subtitle">Review official administrative service records and update permitted contact information.</p>
+      </div>
+      <div>
+        <a href="{{ url_for('admin.teacher_dossier_pdf', teacher_id=teacher.id) }}" class="btn btn-punjab btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF Dossier
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  
+  <!-- Promotion Consideration Disabled Alert Banner -->
+  {% if teacher.is_promotion_disabled %}
+  <div class="alert alert-danger border-0 shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 p-3 rounded-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-danger text-white p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; flex-shrink: 0;">
+        <i class="bi bi-slash-circle-fill fs-5"></i>
+      </div>
+      <div>
+        <strong class="text-danger-emphasis d-block fs-6">
+          <i class="bi bi-exclamation-octagon-fill me-1"></i>Promotion Consideration Status: Disabled
+        </strong>
+        <span class="text-dark fw-semibold">Administrative Ground: <strong>{{ teacher.promotion_disable_reason or 'Administrative Order' }}</strong></span>
+        {% if teacher.promotion_disable_remarks %}
+          <div class="small text-danger fw-semibold mt-1">
+            <i class="bi bi-chat-square-text me-1"></i><strong>Official Remarks / Order:</strong> {{ teacher.promotion_disable_remarks }}
+          </div>
+        {% endif %}
+        {% if teacher.promotion_disabled_at %}
+          <div class="small text-muted mt-1" style="font-size: 0.72rem;">
+            Recorded in central department registry on {{ teacher.promotion_disabled_at.strftime('%d-%b-%Y') }}.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-2 fw-bold">
+        <i class="bi bi-slash-circle me-1"></i>Ineligible for Active Promotion Roll
+      </span>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+    
+    <!-- Read-Only Administrative Details -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-shield-lock text-primary me-2"></i> Official Service Records (Protected)</span>
+          <div>
+            {% if teacher.is_data_verified_by_teacher %}
+              <span class="badge bg-success text-white me-1"><i class="bi bi-check2-circle me-1"></i>Verified by You</span>
+            {% endif %}
+            <span class="badge badge-status-{{ 'verified' if teacher.verification_status == 'Verified' else 'pending' }}">
+              {{ teacher.verification_status }}
+            </span>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-3 small">
+            <div class="col-sm-4 text-muted">Full Name:</div>
+            <div class="col-sm-8 fw-bold">{{ teacher.full_name }}</div>
+
+            <div class="col-sm-4 text-muted">Father Name:</div>
+            <div class="col-sm-8">{{ teacher.father_name }}</div>
+
+            <div class="col-sm-4 text-muted">CNIC:</div>
+            <div class="col-sm-8"><code>{{ teacher.cnic }}</code></div>
+
+            <div class="col-sm-4 text-muted">Personnel Number:</div>
+            <div class="col-sm-8"><code>{{ teacher.personnel_no }}</code></div>
+
+            <div class="col-sm-4 text-muted">Date of Birth:</div>
+            <div class="col-sm-8">{{ teacher.date_of_birth.strftime('%d-%m-%Y') if teacher.date_of_birth else 'N/A' }}</div>
+
+            <div class="col-sm-4 text-muted">Current Designation:</div>
+            <div class="col-sm-8"><span class="badge bg-light text-dark border">{{ teacher.current_designation }} (BS-{{ teacher.current_bs }})</span></div>
+
+            <div class="col-sm-4 text-muted">School &amp; EMIS:</div>
+            <div class="col-sm-8">{{ teacher.school_name }} (<code>{{ teacher.school_emis_code or 'N/A' }}</code>)</div>
+
+            <div class="col-sm-4 text-muted">District / Tehsil:</div>
+            <div class="col-sm-8">{{ teacher.district }} &bull; {{ teacher.tehsil }}</div>
+
+            <div class="col-sm-4 text-muted">Appointment Date:</div>
+            <div class="col-sm-8">{{ teacher.appointment_date.strftime('%d-%m-%Y') if teacher.appointment_date else 'N/A' }}</div>
+
+            <div class="col-sm-4 text-muted">Regularization Date:</div>
+            <div class="col-sm-8 fw-bold text-success">{{ teacher.regularization_date.strftime('%d-%m-%Y') if teacher.regularization_date else 'N/A' }}</div>
+
+            <div class="col-sm-4 text-muted">Current Seniority Rank:</div>
+            <div class="col-sm-8">
+              {% if teacher.seniority_no %}
+                <span class="badge bg-success fs-6">Rank #{{ teacher.seniority_no }}</span>
+                <span class="badge bg-light text-dark border ms-1">{{ teacher.current_designation }} (BS-{{ teacher.current_bs }})</span>
+                {% if teacher.previous_seniority_no %}
+                  <span class="badge bg-info-subtle text-info-emphasis border ms-1" title="Assigned at cadre maximum + 1 upon promotion">
+                    <i class="bi bi-arrow-up-circle-fill text-success me-1"></i>Promoted Rank (Max + 1)
+                  </span>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">Unassigned</span>
+              {% endif %}
+            </div>
+
+            {% if teacher.previous_seniority_no or teacher.previous_designation %}
+            <div class="col-sm-4 text-muted">Feeder Cadre Seniority:</div>
+            <div class="col-sm-8">
+              <span class="badge bg-secondary-subtle text-dark border fs-6">
+                Rank #{{ teacher.previous_seniority_no or 'N/A' }}
+              </span>
+              <span class="badge bg-light text-muted border ms-1">
+                {{ teacher.previous_designation }} (BS-{{ teacher.previous_bs or '14' }})
+              </span>
+              <div class="small text-muted mt-1">
+                <i class="bi bi-shield-check text-primary me-1"></i>Feeder cadre seniority rank held prior to regular promotion.
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="col-sm-4 text-muted">Promotion Consideration:</div>
+            <div class="col-sm-8">
+              {% if teacher.is_promotion_disabled %}
+                <span class="badge bg-danger fs-6"><i class="bi bi-slash-circle me-1"></i>Disabled ({{ teacher.promotion_disable_reason or 'Excluded' }})</span>
+                {% if teacher.promotion_disable_remarks %}
+                  <div class="small text-danger fw-semibold mt-1">
+                    <i class="bi bi-chat-square-text me-1"></i>Remarks: {{ teacher.promotion_disable_remarks }}
+                  </div>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-success-subtle text-success border border-success fs-6"><i class="bi bi-check-circle-fill me-1"></i>Active / Eligible for Consideration</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="alert alert-light border small text-muted mt-4 mb-0">
+            <i class="bi bi-info-circle me-1"></i> <strong>Note on Administrative Fields:</strong>
+            Official service dates, designations, and seniority rankings cannot be modified directly by teachers.
+            If you notice any clerical error, please submit a <a href="{{ url_for('teacher.correction_request') }}" class="fw-bold text-primary">Correction Request</a> with supporting orders.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Editable Contact Information Form -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-bold">
+          <i class="bi bi-telephone text-success me-2"></i> Update Contact Information
+        </div>
+        <div class="card-body p-4">
+          {% if teacher.missing_fields %}
+          <div class="alert alert-warning border-start border-3 border-warning p-2 mb-3 rounded-2">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i class="bi bi-bell-fill text-danger fs-6"></i>
+              <strong class="small text-dark">{{ teacher.missing_fields|length }} Missing Profile Value{% if teacher.missing_fields|length > 1 %}s{% endif %}:</strong>
+            </div>
+            <div class="d-flex flex-wrap gap-1">
+              {% for mf in teacher.missing_fields %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1" style="font-size: 0.68rem;">
+                  <i class="bi bi-x-circle me-1"></i>{{ mf }}
+                </span>
+              {% endfor %}
+            </div>
+            <div class="small text-muted mt-1" style="font-size: 0.68rem;">
+              Fill in your contact details below to resolve these missing values.
+            </div>
+          </div>
+          {% else %}
+          <div class="alert alert-success border-0 py-2 px-3 mb-3 d-flex align-items-center gap-2 rounded-2">
+            <i class="bi bi-check-circle-fill text-success fs-6"></i>
+            <span class="small fw-semibold text-success-emphasis">Contact Information 100% Complete</span>
+          </div>
+          {% endif %}
+          <form method="POST" action="{{ url_for('teacher.profile') }}">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Mobile Number</label>
+              <input type="text" name="mobile" class="form-control" value="{{ teacher.mobile or '' }}" placeholder="03001234567">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Email Address</label>
+              <input type="email" name="email" class="form-control" value="{{ teacher.email or '' }}" placeholder="name@domain.com">
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label small fw-semibold">Residential / Postal Address</label>
+              <textarea name="address" class="form-control" rows="3" placeholder="Full residential address">{{ teacher.address or '' }}</textarea>
+            </div>
+
+            <button type="submit" class="btn btn-punjab w-100 fw-semibold">
+              <i class="bi bi-check-circle me-1"></i> Update Contact Details
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Official Cadre Seniority Records & Milestones Table -->
+    <div class="col-12 mt-3">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <span class="fw-bold"><i class="bi bi-list-ol text-success me-2"></i> Official Cadre Seniority Progression Roll</span>
+          <span class="badge bg-light text-muted border">{{ teacher.seniority_records|length }} Milestones</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-institutional table-full-fit mb-0">
+              <thead>
+                <tr>
+                  <th style="width: 30%;">Cadre Designation &amp; Scale</th>
+                  <th style="width: 20%;">Seniority Rank</th>
+                  <th style="width: 20%;">Effective Date</th>
+                  <th style="width: 30%;">Status &amp; Promotion Basis</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sr in teacher.seniority_records|sort(attribute='seniority_date', reverse=true) %}
+                <tr class="{% if sr.designation == teacher.current_designation and sr.seniority_no == teacher.seniority_no %}bg-success-subtle bg-opacity-10{% endif %}">
+                  <td>
+                    <div class="fw-bold text-dark">{{ sr.designation }}</div>
+                    <div class="d-flex align-items-center gap-1 mt-1 small">
+                      <span class="badge bg-secondary">BS-{{ sr.bs }}</span>
+                      <span class="badge bg-light text-dark border">{{ sr.category or 'General' }}</span>
+                      {% if sr.designation == teacher.current_designation and sr.seniority_no == teacher.seniority_no %}
+                        <span class="badge bg-success text-white">Current Active Seniority</span>
+                      {% else %}
+                        <span class="badge bg-light text-muted border">Feeder Seniority</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge {% if sr.designation == teacher.current_designation and sr.seniority_no == teacher.seniority_no %}bg-success{% else %}bg-secondary{% endif %} fs-6">
+                      Rank #{{ sr.seniority_no }}
+                    </span>
+                    <div class="small text-muted mt-1">{{ sr.district }} District Cadre</div>
+                  </td>
+                  <td>
+                    <div class="small fw-semibold text-dark">
+                      <i class="bi bi-calendar3 me-1 text-muted"></i>{{ sr.seniority_date.strftime('%d-%m-%Y') if sr.seniority_date else 'N/A' }}
+                    </div>
+                    <div class="small text-muted font-monospace mt-1" style="font-size: 0.72rem;">
+                      {{ sr.seniority_list_reference or 'Official Roll' }}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="small text-dark">{{ sr.remarks or 'Statutory civil service seniority rank.' }}</div>
+                    {% if sr.verified %}
+                      <div class="small text-success mt-1"><i class="bi bi-check2-circle me-1"></i>Verified Record</div>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">Current cadre rank: #{{ teacher.seniority_no or 'Unassigned' }}.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock %}

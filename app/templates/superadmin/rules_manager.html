@@ -1,0 +1,483 @@
+{% extends 'base.html' %}
+{% block title %}Service Rules & Sources Manager - Provincial Administrator{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-journal-text text-success me-2"></i> Official Service Rules &amp; Sources</h1>
+        <p class="page-subtitle">Punjab School Education Department Service Rules 2014 &amp; Amendments engine configuration.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#newSourceModal">
+          <i class="bi bi-file-earmark-plus me-1"></i> Add Rule Source
+        </button>
+        <button class="btn btn-punjab btn-sm" data-bs-toggle="modal" data-bs-target="#newRuleModal">
+          <i class="bi bi-plus-circle me-1"></i> Add Promotion Rule
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  
+  <!-- Rule Sources Registered -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="fw-bold"><i class="bi bi-book text-success me-2"></i> Statutory Government Rule Sources</span>
+      <span class="badge bg-light text-dark border">{{ sources|length }} Registered Sources</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional mb-0">
+          <thead>
+            <tr>
+              <th>Notification Number</th>
+              <th>Official Source Title</th>
+              <th>Date</th>
+              <th>Issuing Authority</th>
+              <th>Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sources %}
+            <tr>
+              <td><code>{{ s.notification_no }}</code></td>
+              <td><strong>{{ s.title }}</strong></td>
+              <td>{{ s.notification_date.strftime('%d-%m-%Y') }}</td>
+              <td><span class="badge bg-light text-dark border">{{ s.issuing_authority }}</span></td>
+              <td class="small text-muted">{{ s.document_summary or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-3">No rule sources configured.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configured Promotion Rules Engine -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="fw-bold"><i class="bi bi-diagram-3-fill text-primary me-2"></i> Configured Promotion Rules &amp; Channel Prescriptions</span>
+      <span class="badge bg-light text-dark border">{{ rules|length }} Active Rules</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit align-middle mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th style="width: 28%;">Rule &amp; Promotion Channel</th>
+              <th style="width: 28%;">Academic Qualification &amp; Subjects</th>
+              <th style="width: 18%;">Professional Degree</th>
+              <th style="width: 16%;">Service &amp; Quota</th>
+              <th style="width: 10%;" class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rules %}
+            <tr>
+              <!-- Col 1: Rule & Promotion Channel -->
+              <td>
+                <div class="d-flex align-items-center gap-1 mb-1">
+                  <code class="fw-bold text-punjab">{{ r.rule_code }}</code>
+                  <span class="badge bg-light text-dark border small">{{ r.promotion_category }}</span>
+                </div>
+                <div class="d-flex align-items-center gap-1 small">
+                  <span class="badge bg-secondary-subtle text-dark border">{{ r.source_designation }} (BS-{{ r.source_bs }})</span>
+                  <i class="bi bi-arrow-right text-punjab"></i>
+                  <span class="badge bg-success-subtle text-success border border-success fw-bold">{{ r.target_designation }} (BS-{{ r.target_bs }})</span>
+                </div>
+              </td>
+
+              <!-- Col 2: Academic Qualification & Subjects -->
+              <td>
+                <div class="fw-semibold text-dark text-truncate" style="max-width: 260px;" title="{{ r.required_degree_level }} ({{ r.required_degree_names }})">
+                  <i class="bi bi-mortarboard-fill text-primary me-1"></i>{{ r.required_degree_level }} ({{ r.required_degree_names }})
+                </div>
+                <div class="small text-muted text-truncate" style="max-width: 260px; font-size: 0.72rem;" title="{{ r.required_subjects }}">
+                  Subjects: {{ r.required_subjects }}
+                </div>
+              </td>
+
+              <!-- Col 3: Professional Degree -->
+              <td>
+                <span class="badge bg-info-subtle text-info-emphasis border border-info">{{ r.required_professional_degree }}</span>
+              </td>
+
+              <!-- Col 4: Service & Quota -->
+              <td>
+                <div class="mb-1">
+                  {% if r.min_regular_service_years == 0 %}
+                    <span class="badge bg-success-subtle text-success border border-success">Seniority-cum-Fitness</span>
+                  {% else %}
+                    <span class="badge bg-light text-dark border">{{ r.min_regular_service_years }}y regular service</span>
+                  {% endif %}
+                </div>
+                <div>
+                  <span class="badge bg-warning-subtle text-dark border border-warning">{{ r.quota_percentage }}% Quota</span>
+                </div>
+              </td>
+
+              <!-- Col 5: Action -->
+              <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editRuleModal"
+                        data-id="{{ r.id }}"
+                        data-code="{{ r.rule_code }}"
+                        data-name="{{ r.rule_name }}"
+                        data-src-desig="{{ r.source_designation }}"
+                        data-src-bs="{{ r.source_bs }}"
+                        data-tgt-desig="{{ r.target_designation }}"
+                        data-tgt-bs="{{ r.target_bs }}"
+                        data-cat="{{ r.promotion_category }}"
+                        data-min-svc="{{ r.min_regular_service_years }}"
+                        data-level="{{ r.required_degree_level }}"
+                        data-degrees="{{ r.required_degree_names }}"
+                        data-subjects="{{ r.required_subjects }}"
+                        data-prof="{{ r.required_professional_degree }}"
+                        data-quota="{{ r.quota_percentage }}"
+                        data-active="{{ '1' if r.is_active else '0' }}">
+                  <i class="bi bi-pencil"></i> Edit
+                </button>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">No promotion rules active. Click "Add Promotion Rule" above.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: New Rule Source -->
+<div class="modal fade" id="newSourceModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('superadmin.manage_rules') }}">
+        <input type="hidden" name="action" value="create_source">
+        <div class="modal-header bg-punjab text-white">
+          <h6 class="modal-title fw-bold"><i class="bi bi-file-earmark-plus me-1"></i> Register Statutory Rule Source</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Document Title <span class="text-danger">*</span></label>
+            <input type="text" name="title" class="form-control" placeholder="e.g. SED (School Education) Service Rules 2014" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Notification Number <span class="text-danger">*</span></label>
+            <input type="text" name="notification_no" class="form-control" placeholder="e.g. SOR-III(S&GAD)1-19/2004(P)" required>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Notification Date</label>
+              <input type="date" name="notification_date" class="form-control" value="2014-03-14" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Issuing Authority</label>
+              <input type="text" name="issuing_authority" class="form-control" value="S&GAD / SED">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Document Summary / Legal Context</label>
+            <textarea name="document_summary" class="form-control small" rows="2" placeholder="Governing service rules for appointment, promotion, and seniority in SED."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-punjab">Save Rule Source</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: New Promotion Rule -->
+<div class="modal fade" id="newRuleModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('superadmin.manage_rules') }}">
+        <input type="hidden" name="action" value="create_rule">
+        <div class="modal-header bg-punjab text-white">
+          <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle me-1"></i> Configure Promotion Channel Rule</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Governing Rule Source <span class="text-danger">*</span></label>
+              <select name="source_id" class="form-select" required>
+                {% for s in sources %}
+                  <option value="{{ s.id }}">{{ s.notification_no }} - {{ s.title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Unique Rule Identifier Code <span class="text-danger">*</span></label>
+              <input type="text" name="rule_code" class="form-control" placeholder="e.g. EST_TO_SST_SCI" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Rule Display Name <span class="text-danger">*</span></label>
+            <input type="text" name="rule_name" class="form-control" placeholder="e.g. Promotion of EST to SST (Science) BS-16" required>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Source Feeder Post <span class="text-danger">*</span></label>
+              <select name="source_designation" id="rule_source_desig" class="form-select" required onchange="handleRuleSourceChange(this)">
+                <option value="">-- Select Feeder Post --</option>
+                {% for cadre, posts in active_teaching_posts|groupby('cadre') %}
+                  <optgroup label="{{ cadre }}">
+                    {% for p in posts %}
+                      <option value="{{ p.post_title }}" data-scale="{{ p.basic_scale }}">{{ p.post_title }} (BS-{{ p.basic_scale }})</option>
+                    {% endfor %}
+                  </optgroup>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Source Scale (BS) <span class="text-danger">*</span></label>
+              <select name="source_bs" id="rule_source_bs" class="form-select" required>
+                {% for scale in [12, 14, 15, 16, 17, 18, 19, 20] %}
+                  <option value="{{ scale }}" {% if scale == 14 %}selected{% endif %}>BS-{{ scale }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Target Promotion Post <span class="text-danger">*</span></label>
+              <select name="target_designation" id="rule_target_desig" class="form-select" required onchange="handleRuleTargetChange(this)">
+                <option value="">-- Select Target Post --</option>
+                {% for cadre, posts in active_teaching_posts|groupby('cadre') %}
+                  <optgroup label="{{ cadre }}">
+                    {% for p in posts %}
+                      <option value="{{ p.post_title }}" data-scale="{{ p.basic_scale }}" data-category="{{ p.category }}">{{ p.post_title }} (BS-{{ p.basic_scale }})</option>
+                    {% endfor %}
+                  </optgroup>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Target Scale (BS) <span class="text-danger">*</span></label>
+              <select name="target_bs" id="rule_target_bs" class="form-select" required>
+                {% for scale in [12, 14, 15, 16, 17, 18, 19, 20] %}
+                  <option value="{{ scale }}" {% if scale == 15 %}selected{% endif %}>BS-{{ scale }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Promotion Category</label>
+              <input type="text" name="promotion_category" class="form-control" value="Science" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Min Regular Service (Years)</label>
+              <input type="number" step="0.5" name="min_regular_service_years" class="form-control" value="3.0" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Promotion Quota %</label>
+              <input type="number" step="1" name="quota_percentage" class="form-control" value="50" required>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Required Degree Level</label>
+              <select name="required_degree_level" class="form-select">
+                <option value="Bachelor">Bachelor (14 Years)</option>
+                <option value="BS-4Years">BS 4-Year (16 Years)</option>
+                <option value="Master">Master (16 Years)</option>
+                <option value="Intermediate">Intermediate (12 Years)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Allowed Degrees</label>
+              <input type="text" name="required_degree_names" class="form-control" placeholder="B.Sc, BS, B.A" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Required Subjects</label>
+              <input type="text" name="required_subjects" class="form-control" placeholder="Physics, Chemistry, Math" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Prescribed Professional Qualification</label>
+            <input type="text" name="required_professional_degree" class="form-control" value="B.Ed,B.S.Ed,ADE">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-punjab">Save Promotion Rule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Edit Promotion Rule -->
+<div class="modal fade" id="editRuleModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="POST">
+        <input type="hidden" name="action" value="edit_rule">
+        <input type="hidden" name="rule_id" id="edit_rule_id">
+        <div class="modal-header bg-punjab text-white">
+          <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i> Edit Promotion Rule: <span id="edit_rule_title_code"></span></h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Rule Title / Description <span class="text-danger">*</span></label>
+            <input type="text" name="rule_name" id="edit_rule_name" class="form-control" required>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Feeder / Source Designation <span class="text-danger">*</span></label>
+              <input type="text" name="source_designation" id="edit_source_desig" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Feeder Basic Scale (BS) <span class="text-danger">*</span></label>
+              <select name="source_bs" id="edit_source_bs" class="form-select" required>
+                <option value="14">BS-14</option>
+                <option value="15">BS-15</option>
+                <option value="16">BS-16</option>
+                <option value="17">BS-17</option>
+                <option value="18">BS-18</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Target Promotion Post <span class="text-danger">*</span></label>
+              <input type="text" name="target_designation" id="edit_target_desig" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Target Basic Scale (BS) <span class="text-danger">*</span></label>
+              <select name="target_bs" id="edit_target_bs" class="form-select" required>
+                <option value="15">BS-15</option>
+                <option value="16">BS-16</option>
+                <option value="17">BS-17</option>
+                <option value="18">BS-18</option>
+                <option value="19">BS-19</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Promotion Category</label>
+              <input type="text" name="promotion_category" id="edit_promotion_category" class="form-control" placeholder="Science, Arts, General" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Min Regular Service (Years)</label>
+              <input type="number" step="0.5" min="0" name="min_regular_service_years" id="edit_min_service" class="form-control" required>
+              <small class="text-muted">Enter 0 for non-prescribed service (Seniority-cum-Fitness)</small>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Promotion Quota %</label>
+              <input type="number" step="1" min="1" max="100" name="quota_percentage" id="edit_quota" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Degree Level</label>
+              <select name="required_degree_level" id="edit_req_level" class="form-select">
+                <option value="Master">Master / BS-4Years (16 Years)</option>
+                <option value="Bachelor">Bachelor (14 Years)</option>
+                <option value="Intermediate">Intermediate (12 Years)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Allowed Degrees</label>
+              <input type="text" name="required_degree_names" id="edit_req_degrees" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Required Subjects</label>
+              <input type="text" name="required_subjects" id="edit_req_subjects" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-8">
+              <label class="form-label small fw-semibold">Prescribed Professional Qualification</label>
+              <input type="text" name="required_professional_degree" id="edit_req_prof" class="form-control">
+            </div>
+            <div class="col-md-4 d-flex align-items-center mt-4">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="is_active" id="edit_is_active" value="1">
+                <label class="form-check-label fw-semibold" for="edit_is_active">Rule Active</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-punjab">Update Promotion Rule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleRuleSourceChange(el) {
+  const opt = el.options[el.selectedIndex];
+  if (opt && opt.dataset.scale) {
+    const scaleSelect = document.getElementById('rule_source_bs');
+    if (scaleSelect) {
+      scaleSelect.value = opt.dataset.scale;
+    }
+  }
+}
+
+function handleRuleTargetChange(el) {
+  const opt = el.options[el.selectedIndex];
+  if (opt && opt.dataset.scale) {
+    const scaleSelect = document.getElementById('rule_target_bs');
+    if (scaleSelect) {
+      scaleSelect.value = opt.dataset.scale;
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const editModal = document.getElementById('editRuleModal');
+  if (editModal) {
+    editModal.addEventListener('show.bs.modal', (e) => {
+      const btn = e.relatedTarget;
+      document.getElementById('edit_rule_id').value = btn.dataset.id || '';
+      document.getElementById('edit_rule_title_code').textContent = btn.dataset.code || '';
+      document.getElementById('edit_rule_name').value = btn.dataset.name || '';
+      document.getElementById('edit_source_desig').value = btn.dataset.srcDesig || '';
+      document.getElementById('edit_source_bs').value = btn.dataset.srcBs || '14';
+      document.getElementById('edit_target_desig').value = btn.dataset.tgtDesig || '';
+      document.getElementById('edit_target_bs').value = btn.dataset.tgtBs || '15';
+      document.getElementById('edit_promotion_category').value = btn.dataset.cat || '';
+      document.getElementById('edit_min_service').value = btn.dataset.minSvc || '0';
+      document.getElementById('edit_quota').value = btn.dataset.quota || '50';
+      document.getElementById('edit_req_level').value = btn.dataset.level || 'Bachelor';
+      document.getElementById('edit_req_degrees').value = btn.dataset.degrees || '';
+      document.getElementById('edit_req_subjects').value = btn.dataset.subjects || '';
+      document.getElementById('edit_req_prof').value = btn.dataset.prof || '';
+      document.getElementById('edit_is_active').checked = (btn.dataset.active === '1');
+    });
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,674 @@
+{% extends 'base.html' %}
+{% block title %}Bulk Excel Import &amp; Upsert - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i> Bulk Excel Import &amp; Synchronization</h1>
+        <p class="page-subtitle">Batch import or update teacher records from official departmental spreadsheets.</p>
+      </div>
+      <div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('admin.download_education_template') }}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-mortarboard me-1"></i> Dedicated Education Template (.xlsx)
+          </a>
+          <a href="{{ url_for('admin.download_template') }}" class="btn btn-gold btn-sm">
+            <i class="bi bi-download me-1"></i> Download Master Multi-Sheet Template (.xlsx)
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+
+  <!-- Visual Workflow Steps Banner -->
+  <div class="card shadow-sm border mb-4 bg-white">
+    <div class="card-body p-3 p-lg-4">
+      <div class="row align-items-center g-3">
+        <div class="col-xl-3 col-md-6">
+          <div class="d-flex align-items-start gap-3">
+            <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style="width: 42px; height: 42px; font-size: 1.15rem; background-color: #0b6b3a !important;">1</div>
+            <div>
+              <div class="fw-bold fs-6 text-dark" style="color: #111827 !important;">Download Template</div>
+              <div class="small" style="color: #4b5563 !important; line-height: 1.35; margin-top: 2px;">Grab the official standardized Excel file with pre-built columns.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+          <div class="d-flex align-items-start gap-3">
+            <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style="width: 42px; height: 42px; font-size: 1.15rem; background-color: #0b6b3a !important;">2</div>
+            <div>
+              <div class="fw-bold fs-6 text-dark" style="color: #111827 !important;">Fill Data &amp; Degrees</div>
+              <div class="small" style="color: #4b5563 !important; line-height: 1.35; margin-top: 2px;">Populate teacher biodata and qualifications linked by CNIC.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+          <div class="d-flex align-items-start gap-3">
+            <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style="width: 42px; height: 42px; font-size: 1.15rem; background-color: #0b6b3a !important;">3</div>
+            <div>
+              <div class="fw-bold fs-6 text-dark" style="color: #111827 !important;">Validate &amp; Preview</div>
+              <div class="small" style="color: #4b5563 !important; line-height: 1.35; margin-top: 2px;">Instant pre-flight check flags errors and previews rows.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+          <div class="d-flex align-items-start gap-3">
+            <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style="width: 42px; height: 42px; font-size: 1.15rem; background-color: #d97706 !important;">4</div>
+            <div>
+              <div class="fw-bold fs-6 text-dark" style="color: #111827 !important;">Commit &amp; Synchronize</div>
+              <div class="small" style="color: #4b5563 !important; line-height: 1.35; margin-top: 2px;">Atomic upsert into database + automated account credentials.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    
+    <!-- Upload Form Card -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm border-0 sticky-top" style="top: 80px; z-index: 10;">
+        <div class="card-header bg-white fw-bold py-3 d-flex align-items-center justify-content-between border-bottom">
+          <span><i class="bi bi-cloud-arrow-up text-success me-2"></i> Select Spreadsheet File</span>
+          <span class="badge bg-success-subtle text-success">Step 3 of 4</span>
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('admin.excel_import') }}" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="preview">
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-dark">Upload Official Excel Workbook (.xlsx / .xls)</label>
+              <input type="file" name="excel_file" class="form-control form-control-lg border-2" accept=".xlsx, .xls" required>
+              <div class="form-text small mt-1">Multi-sheet master workbook or single-sheet file supported.</div>
+            </div>
+
+            <div class="p-3 bg-light rounded border mb-3 small">
+              <div class="fw-bold text-dark mb-2"><i class="bi bi-shield-check text-success me-1"></i> Pre-Flight Safeguards:</div>
+              <ul class="mb-0 ps-3 text-secondary">
+                <li class="mb-1"><strong>Atomic Deduplication:</strong> Existing CNICs are safely updated without orphan records.</li>
+                <li class="mb-1"><strong>Auto-Account Creation:</strong> Newly added teachers get portal accounts (<code>User: CNIC</code>, <code>Pass: Teacher@123</code>).</li>
+                <li><strong>Statutory Alignment:</strong> Degrees are automatically mapped to SED Service Rules 2014.</li>
+              </ul>
+            </div>
+
+            <button type="submit" class="btn btn-punjab w-100 py-2 fw-semibold shadow-sm">
+              <i class="bi bi-search me-1"></i> Validate &amp; Preview File
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview & Commit Card -->
+    <div class="col-lg-7">
+      {% if preview_data %}
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <span class="fw-bold"><i class="bi bi-check2-circle text-success me-2"></i> Validation Summary</span>
+          <span class="badge bg-success">{{ preview_data.valid_count }} Valid Rows</span>
+        </div>
+        <div class="card-body p-4">
+          
+          <div class="row g-2 text-center mb-3">
+            <div class="col-4">
+              <div class="bg-light p-2 rounded border">
+                <div class="fs-5 fw-bold text-primary">{{ preview_data.total_rows }}</div>
+                <small class="text-muted">Total Rows</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="bg-light p-2 rounded border">
+                <div class="fs-5 fw-bold text-success">{{ preview_data.insert_count }}</div>
+                <small class="text-muted">New Inserts</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="bg-light p-2 rounded border">
+                <div class="fs-5 fw-bold text-warning">{{ preview_data.update_count }}</div>
+                <small class="text-muted">Existing Updates</small>
+              </div>
+            </div>
+          </div>
+
+          {% if preview_data.errors %}
+          <div class="alert alert-danger small mb-3">
+            <h6 class="fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Warnings / Skipped Rows:</h6>
+            <ul class="mb-0 ps-3">
+              {% for err in preview_data.errors[:8] %}
+                <li>{{ err }}</li>
+              {% endfor %}
+              {% if preview_data.errors|length > 8 %}
+                <li>... and {{ preview_data.errors|length - 8 }} more errors.</li>
+              {% endif %}
+            </ul>
+          </div>
+          {% endif %}
+
+          <form method="POST" action="{{ url_for('admin.excel_import') }}">
+            <input type="hidden" name="action" value="commit">
+            <input type="hidden" name="file_path" value="{{ preview_data.file_path }}">
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" name="update_existing" id="upsertCheck" checked>
+              <label class="form-check-label small fw-semibold" for="upsertCheck">
+                Update existing teachers if CNIC already exists (Upsert Mode)
+              </label>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-punjab flex-grow-1 fw-semibold">
+                <i class="bi bi-database-check me-1"></i> Confirm &amp; Import Records
+              </button>
+              <a href="{{ url_for('admin.excel_import') }}" class="btn btn-outline-secondary">Discard</a>
+            </div>
+          </form>
+
+        </div>
+      </div>
+      {% else %}
+      <div class="card shadow-sm border-0 h-100 d-flex align-items-center justify-content-center p-5 text-center bg-light">
+        <i class="bi bi-cloud-arrow-up fs-1 text-muted mb-2"></i>
+        <h6 class="fw-bold text-secondary">No Spreadsheet Loaded Yet</h6>
+        <p class="small text-muted mb-0">Select an Excel workbook on the left to preview validation results before committing to the database.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Table Preview Section if file uploaded -->
+  {% if preview_data and preview_data.preview_rows %}
+  <div class="card shadow-sm border-0 mt-4">
+    <div class="card-header bg-white fw-bold">
+      <i class="bi bi-table text-secondary me-2"></i> Data Sample Preview (First 50 Rows)
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit mb-0">
+          <thead>
+            <tr>
+              <th style="width: 12%;">Row &amp; Action</th>
+              <th style="width: 36%;">Teacher Profile &amp; Identifiers</th>
+              <th style="width: 24%;">Cadre &amp; Scale</th>
+              <th style="width: 28%;">District &amp; Appointment</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in preview_data.preview_rows %}
+            <tr>
+              <td>
+                <span class="badge bg-light text-dark border">#{{ r.row_num }}</span>
+                {% if r.action == 'INSERT' %}
+                  <span class="badge bg-success ms-1">NEW</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark ms-1">UPDATE</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="fw-bold text-dark">{{ r.full_name }}</div>
+                <div class="d-flex align-items-center gap-1 mt-1 small">
+                  <code>{{ r.cnic }}</code>
+                  <span class="text-muted">&bull; Pers: {{ r.personnel_no }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="fw-semibold">{{ r.designation }}</div>
+                <div class="mt-1"><span class="badge bg-secondary">BS-{{ r.bs }}</span></div>
+              </td>
+              <td>
+                <div><i class="bi bi-geo-alt me-1 text-danger"></i><strong>{{ r.district }}</strong></div>
+                <div class="small text-muted mt-1"><i class="bi bi-calendar3 me-1"></i>Appt: {{ r.appointment_date }}</div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Comprehensive Interactive Guide: How to Complete the Official Excel Template -->
+  <div class="card shadow-sm border-0 mt-4 overflow-hidden">
+    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <h5 class="mb-0 fw-bold text-dark">
+          <i class="bi bi-book-half text-success me-2"></i> Official Guide: How to Fill Spreadsheet Templates Correctly
+        </h5>
+        <p class="text-muted small mb-0">Follow statutory formatting standards to ensure zero validation errors, accurate seniority ranking, and instant promotion eligibility matching.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.download_template') }}" class="btn btn-gold btn-sm">
+          <i class="bi bi-download me-1"></i> Multi-Sheet Master (.xlsx)
+        </a>
+        <a href="{{ url_for('admin.download_education_template') }}" class="btn btn-outline-success btn-sm">
+          <i class="bi bi-mortarboard me-1"></i> Dedicated Education (.xlsx)
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Tabs for Guide -->
+    <div class="bg-light px-3 pt-3 border-bottom">
+      <ul class="nav nav-pills" id="guideTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active fw-semibold" id="sheet1-tab" data-bs-toggle="pill" data-bs-target="#guide-sheet1" type="button" role="tab">
+            <i class="bi bi-person-lines-fill me-1"></i> 1. Teachers_Data Sheet
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-semibold" id="sheet2-tab" data-bs-toggle="pill" data-bs-target="#guide-sheet2" type="button" role="tab">
+            <i class="bi bi-mortarboard-fill me-1"></i> 2. Qualifications Sheet (Multi-Teacher)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-semibold" id="sheet3-tab" data-bs-toggle="pill" data-bs-target="#guide-sheet3" type="button" role="tab">
+            <i class="bi bi-card-checklist me-1"></i> 3. Statutory Degrees &amp; Subjects
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-semibold" id="sheet4-tab" data-bs-toggle="pill" data-bs-target="#guide-sheet4" type="button" role="tab">
+            <i class="bi bi-shield-check me-1"></i> 4. Best Practices &amp; Common Pitfalls
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Tab Contents -->
+    <div class="card-body p-4">
+      <div class="tab-content" id="guideTabContent">
+
+        <!-- TAB 1: Teachers_Data Sheet Guide -->
+        <div class="tab-pane fade show active" id="guide-sheet1" role="tabpanel">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <h6 class="fw-bold text-dark mb-1"><i class="bi bi-table text-primary me-2"></i> Sheet 1: Teachers_Data (Personal Biodata, Posting &amp; Service Profile)</h6>
+              <p class="text-muted small mb-0">Contains one row per teacher. Provides core profile details used to establish feeder seniority, cadre scale, and district placement.</p>
+            </div>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Primary Sheet</span>
+          </div>
+
+          <div class="table-responsive border rounded mb-4">
+            <table class="table table-hover table-striped mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 18%;">Column Header</th>
+                  <th style="width: 12%;">Type / Required</th>
+                  <th style="width: 25%;">Valid Format / Values</th>
+                  <th style="width: 45%;">Statutory Purpose &amp; Guidelines</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>CNIC</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td><code>35201-1234567-9</code> or 13 digits</td>
+                  <td><strong>Master Unique Identifier</strong>. Used to establish teacher login accounts and link multiple qualifications in Sheet 2.</td>
+                </tr>
+                <tr>
+                  <td><code>Full_Name</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td>Text (e.g. <code>Muhammad Ahmad</code>)</td>
+                  <td>Official name as recorded in departmental service book and CNIC.</td>
+                </tr>
+                <tr>
+                  <td><code>Father_Name</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td>Text (e.g. <code>Abdul Rehman</code>)</td>
+                  <td>Father or husband name for official gazette identification.</td>
+                </tr>
+                <tr>
+                  <td><code>Gender</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td><code>Male</code> or <code>Female</code></td>
+                  <td>Ensures correct allocation in male/female school vacancies and quotas.</td>
+                </tr>
+                <tr>
+                  <td><code>Date_of_Birth</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td><code>YYYY-MM-DD</code> (e.g. <code>1985-04-12</code>)</td>
+                  <td>Used for: (1) <strong>Age 60+ Superannuation</strong> automatic retirement checks, and (2) <strong>Seniority tie-breaking</strong> (older candidate ranks senior when regularization dates are identical).</td>
+                </tr>
+                <tr>
+                  <td><code>Current_Designation</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td><code>PST</code>, <code>EST (Science)</code>, <code>EST (General)</code>, <code>EST (Arabic)</code>, <code>SST (Science)</code>, etc.</td>
+                  <td>Teacher's present cadre. Used as the <strong>Feeder Post</strong> when evaluating eligibility for target promotion posts under Service Rules 2014.</td>
+                </tr>
+                <tr>
+                  <td><code>Current_BS</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td>Integer: <code>14</code>, <code>15</code>, <code>16</code>, <code>17</code>, <code>18</code></td>
+                  <td>Basic Pay Scale of the teacher's current post.</td>
+                </tr>
+                <tr>
+                  <td><code>Appointment_Date</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td><code>YYYY-MM-DD</code> (e.g. <code>2010-09-15</code>)</td>
+                  <td>First appointment date into government service.</td>
+                </tr>
+                <tr>
+                  <td><code>Regularization_Date</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td><code>YYYY-MM-DD</code> (e.g. <code>2013-10-19</code>)</td>
+                  <td><strong>Statutory Seniority Anchor</strong>. The promotion engine calculates total regular service length and seniority precedence starting from this date.</td>
+                </tr>
+                <tr>
+                  <td><code>District</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td>e.g. <code>Lahore</code>, <code>Kasur</code>, <code>Rawalpindi</code></td>
+                  <td>Administrative district. DPC promotion rolls and vacancy quotas are filtered strictly by district.</td>
+                </tr>
+                <tr>
+                  <td><code>School_Name</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td>e.g. <code>Govt High School Central Lahore</code></td>
+                  <td>Current place of posting.</td>
+                </tr>
+                <tr>
+                  <td><code>Seniority_Number</code></td>
+                  <td><span class="badge bg-secondary">Optional</span></td>
+                  <td>Integer (e.g. <code>42</code>)</td>
+                  <td>Official district seniority list serial number. If omitted, seniority defaults to regularization date order.</td>
+                </tr>
+                <tr>
+                  <td><code>Personnel_No</code></td>
+                  <td><span class="badge bg-secondary">Optional</span></td>
+                  <td>8-digit number (e.g. <code>31245678</code>)</td>
+                  <td>Accountant General / SAP Personnel number for payroll and cross-departmental auditing.</td>
+                </tr>
+                <tr>
+                  <td><code>Current_Status</code></td>
+                  <td><span class="badge bg-secondary">Optional</span></td>
+                  <td><code>Active</code>, <code>Retired</code>, <code>On Leave</code>, <code>Suspended</code></td>
+                  <td>Defaults to <code>Active</code>. Teachers marked <code>Retired</code> are automatically excluded from promotion consideration.</td>
+                </tr>
+                <tr>
+                  <td><code>PEEDA_Inquiry</code></td>
+                  <td><span class="badge bg-secondary">Optional</span></td>
+                  <td><code>None</code> or inquiry details</td>
+                  <td>Any active disciplinary inquiry under PEEDA Act 2006. If pending, promotion is automatically placed on hold.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card bg-light border-0 p-3">
+            <h6 class="fw-bold text-dark small mb-2"><i class="bi bi-eye text-primary me-1"></i> Example Row in Teachers_Data:</h6>
+            <div class="table-responsive bg-white rounded border">
+              <table class="table table-bordered table-sm mb-0 text-center font-monospace" style="font-size: 0.78rem;">
+                <thead class="table-secondary">
+                  <tr>
+                    <th>CNIC</th><th>Full_Name</th><th>Father_Name</th><th>Gender</th><th>Date_of_Birth</th><th>Current_Designation</th><th>Current_BS</th><th>Regularization_Date</th><th>District</th><th>School_Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>35201-1234567-9</td><td>Muhammad Ahmad</td><td>Abdul Rehman</td><td>Male</td><td>1986-05-14</td><td>PST</td><td>14</td><td>2014-03-15</td><td>Lahore</td><td>Govt Pilot High School</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: Qualifications Sheet Guide -->
+        <div class="tab-pane fade" id="guide-sheet2" role="tabpanel">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <h6 class="fw-bold text-dark mb-1"><i class="bi bi-mortarboard text-success me-2"></i> Sheet 2: Qualifications (Multi-Teacher Academic &amp; Professional Degrees)</h6>
+              <p class="text-muted small mb-0">Allows recording multiple educational degrees (Matric, F.Sc, B.Sc, M.Sc, B.Ed) for any number of teachers in a single unified sheet.</p>
+            </div>
+            <span class="badge bg-success-subtle text-success border border-success-subtle">Multi-Row Supported</span>
+          </div>
+
+          <!-- The CNIC Linking Magic Card -->
+          <div class="alert alert-success border-success-subtle d-flex align-items-start gap-3 mb-4">
+            <i class="bi bi-link-45deg fs-2 text-success flex-shrink-0"></i>
+            <div>
+              <h6 class="fw-bold mb-1">How Multi-Teacher Qualifications Linking Works:</h6>
+              <p class="small mb-0">Every row in the <code>Qualifications</code> sheet must have the teacher's exact <strong>CNIC</strong>. To add 5 degrees for one teacher, simply write 5 consecutive rows with the same CNIC. The system automatically links each degree to that teacher's profile without duplicating the teacher!</p>
+            </div>
+          </div>
+
+          <div class="table-responsive border rounded mb-4">
+            <table class="table table-hover table-striped mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 18%;">Column Header</th>
+                  <th style="width: 12%;">Type / Required</th>
+                  <th style="width: 25%;">Valid Format / Values</th>
+                  <th style="width: 45%;">Statutory Purpose &amp; Guidelines</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>CNIC</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td><code>35201-1234567-9</code></td>
+                  <td><strong>Foreign Key</strong>. Must match a valid CNIC in <code>Teachers_Data</code> or an existing teacher in the database.</td>
+                </tr>
+                <tr>
+                  <td><code>Degree_Level</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td><code>Matric</code>, <code>Intermediate</code>, <code>Bachelor</code>, <code>BS-4Years</code>, <code>Master</code>, <code>M.Phil</code>, <code>PhD</code>, <code>Professional Teaching</code></td>
+                  <td>Standard educational tier. Standardized naming ensures correct seniority and quota calculation.</td>
+                </tr>
+                <tr>
+                  <td><code>Degree_Name</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td>e.g. <code>M.Sc Chemistry</code>, <code>B.Ed (1.5 Years)</code>, <code>B.Sc (Botany, Zoology, Chemistry)</code></td>
+                  <td>Official degree title. For fastest automatic validation, copy exact names from the <strong>Predefined_Qualifications</strong> sheet.</td>
+                </tr>
+                <tr>
+                  <td><code>Major_Subject</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td>e.g. <code>Chemistry</code>, <code>English Literature</code>, <code>Physics</code>, <code>Arabic</code></td>
+                  <td><strong>Crucial for Cadre Matching</strong>. Required to qualify for specialized promotion posts like EST (Science), EST (Arabic), or SST (English).</td>
+                </tr>
+                <tr>
+                  <td><code>Minor_Subject</code></td>
+                  <td><span class="badge bg-secondary">Optional</span></td>
+                  <td>e.g. <code>Zoology</code>, <code>Botany</code>, <code>Mathematics</code></td>
+                  <td>Secondary or subsidiary subjects.</td>
+                </tr>
+                <tr>
+                  <td><code>Passing_Year</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td>4-digit year (e.g. <code>2014</code>)</td>
+                  <td>Year of degree completion / issuance of official transcript.</td>
+                </tr>
+                <tr>
+                  <td><code>Total_Marks</code> &amp; <code>Marks_Obtained</code></td>
+                  <td><span class="badge bg-secondary">Optional</span></td>
+                  <td>Numeric (e.g. <code>850</code> out of <code>1200</code>)</td>
+                  <td>Percentage and division are computed automatically if marks are entered.</td>
+                </tr>
+                <tr>
+                  <td><code>Division</code></td>
+                  <td><span class="badge bg-secondary">Optional</span></td>
+                  <td><code>First</code>, <code>Second</code>, <code>Third</code>, or CGPA</td>
+                  <td>Academic merit standing.</td>
+                </tr>
+                <tr>
+                  <td><code>Board_University</code></td>
+                  <td><span class="badge bg-danger">Mandatory</span></td>
+                  <td>e.g. <code>University of the Punjab (PU), Lahore</code>, <code>BISE Lahore</code></td>
+                  <td>Issuing educational authority or HEC-recognized university.</td>
+                </tr>
+                <tr>
+                  <td><code>Is_Professional</code></td>
+                  <td><span class="badge bg-danger">Crucial</span></td>
+                  <td><code>Yes</code> or <code>No</code></td>
+                  <td><strong>Statutory Professional Teaching Requirement</strong>. Must be marked <code>Yes</code> for <code>B.Ed</code>, <code>M.Ed</code>, <code>ADE</code>, <code>B.S.Ed</code>, <code>M.A Education</code>, or <code>DPE</code>. The promotion engine will reject candidates lacking a verified professional teaching degree!</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card bg-light border-0 p-3">
+            <h6 class="fw-bold text-dark small mb-2"><i class="bi bi-eye text-success me-1"></i> Example Multi-Degree Entry for One Teacher:</h6>
+            <div class="table-responsive bg-white rounded border">
+              <table class="table table-bordered table-sm mb-0 text-center font-monospace" style="font-size: 0.78rem;">
+                <thead class="table-secondary">
+                  <tr>
+                    <th>CNIC</th><th>Degree_Level</th><th>Degree_Name</th><th>Major_Subject</th><th>Passing_Year</th><th>Board_University</th><th>Is_Professional</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>35201-1234567-9</td><td>Matric</td><td>Matric Science</td><td>Science Group</td><td>2003</td><td>BISE Lahore</td><td><span class="badge bg-secondary">No</span></td>
+                  </tr>
+                  <tr>
+                    <td>35201-1234567-9</td><td>Intermediate</td><td>F.Sc Pre-Medical</td><td>Pre-Medical</td><td>2005</td><td>BISE Lahore</td><td><span class="badge bg-secondary">No</span></td>
+                  </tr>
+                  <tr>
+                    <td>35201-1234567-9</td><td>Bachelor</td><td>B.Sc (Botany, Zoology, Chemistry)</td><td>Chemistry</td><td>2007</td><td>University of the Punjab</td><td><span class="badge bg-secondary">No</span></td>
+                  </tr>
+                  <tr>
+                    <td>35201-1234567-9</td><td>Master</td><td>M.Sc Chemistry</td><td>Chemistry</td><td>2009</td><td>University of the Punjab</td><td><span class="badge bg-secondary">No</span></td>
+                  </tr>
+                  <tr class="table-success">
+                    <td>35201-1234567-9</td><td>Professional Teaching</td><td>B.Ed (1.5 Years)</td><td>Education</td><td>2012</td><td>University of Education, Lahore</td><td><span class="badge bg-success">Yes</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: Predefined Statutory Degrees Catalog -->
+        <div class="tab-pane fade" id="guide-sheet3" role="tabpanel">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <h6 class="fw-bold text-dark mb-1"><i class="bi bi-card-checklist text-warning me-2"></i> Sheet 3: Predefined_Qualifications (Statutory Catalog per Service Rules 2014)</h6>
+              <p class="text-muted small mb-0">Built-in reference library containing 80+ statutory degrees and approved subject specializations recognized by SED and HEC.</p>
+            </div>
+            <span class="badge bg-warning-subtle text-dark border border-warning-subtle">Statutory Reference</span>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded border h-100">
+                <div class="fw-bold text-dark mb-2"><i class="bi bi-bookmark-star text-success me-1"></i> Why use Predefined Degree Titles?</div>
+                <p class="small text-secondary mb-2">When evaluating candidates for promotion (e.g. PST &rarr; EST Science BS-15), the promotion engine checks if the teacher possesses an authorized academic degree in the required subject (e.g. Physics, Chemistry, Biology) and a recognized professional degree (B.Ed/ADE).</p>
+                <p class="small text-secondary mb-0">Copying exact titles from Sheet 3 guarantees that the evaluation engine awards <strong>PASS</strong> status on qualification scrutiny instantly.</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded border h-100">
+                <div class="fw-bold text-dark mb-2"><i class="bi bi-mortarboard text-primary me-1"></i> Recognized Professional Teaching Degrees:</div>
+                <ul class="small text-secondary mb-0 ps-3">
+                  <li><code>B.Ed (1.5 / 2.5 / 4.0 Years)</code></li>
+                  <li><code>Associate Degree in Education (ADE)</code></li>
+                  <li><code>B.S.Ed (Bachelor of Science in Education)</code></li>
+                  <li><code>M.Ed (Master of Education)</code></li>
+                  <li><code>M.A Education</code></li>
+                  <li><code>Diploma in Physical Education (DPE)</code> (for Physical Education posts)</li>
+                  <li><code>Shahadat-ul-Almia</code> (recognized for Arabic / Islamic Studies posts)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dual Template Comparison -->
+          <div class="card border">
+            <div class="card-header bg-white fw-bold small text-muted text-uppercase">
+              <i class="bi bi-files me-1"></i> Choosing the Right Template for Your Task
+            </div>
+            <div class="card-body p-0">
+              <div class="row g-0">
+                <div class="col-md-6 p-3 border-end">
+                  <h6 class="fw-bold text-success mb-1">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Master Multi-Sheet Template
+                  </h6>
+                  <p class="small text-muted mb-2">Contains <code>Teachers_Data</code> + <code>Qualifications</code> + <code>Predefined_Qualifications</code> + <code>Teaching_Posts</code> + <code>Instructions</code>.</p>
+                  <span class="badge bg-success-subtle text-success mb-2">Best For:</span>
+                  <p class="small text-secondary mb-3">Onboarding new batches of teachers, setting up district rosters from scratch, or importing comprehensive teacher service records.</p>
+                  <a href="{{ url_for('admin.download_template') }}" class="btn btn-outline-success btn-sm w-100">
+                    <i class="bi bi-download me-1"></i> Download Master Template (.xlsx)
+                  </a>
+                </div>
+                <div class="col-md-6 p-3">
+                  <h6 class="fw-bold text-primary mb-1">
+                    <i class="bi bi-mortarboard me-1"></i> Dedicated Bulk Education Template
+                  </h6>
+                  <p class="small text-muted mb-2">Contains <code>Qualifications</code> + <code>Predefined_Qualifications</code> + <code>Teachers_Reference</code> + <code>Instructions</code>.</p>
+                  <span class="badge bg-primary-subtle text-primary mb-2">Best For:</span>
+                  <p class="small text-secondary mb-3">Quickly adding or updating degrees for teachers who already exist in the database without touching their personal or service information.</p>
+                  <a href="{{ url_for('admin.download_education_template') }}" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-download me-1"></i> Download Dedicated Education Template (.xlsx)
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: Best Practices & Common Pitfalls -->
+        <div class="tab-pane fade" id="guide-sheet4" role="tabpanel">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <h6 class="fw-bold text-dark mb-1"><i class="bi bi-shield-check text-info me-2"></i> Best Practices, Formatting Rules &amp; Common Pitfalls</h6>
+              <p class="text-muted small mb-0">Follow these golden rules to avoid skipped rows, validation warnings, or incorrect seniority ordering.</p>
+            </div>
+            <span class="badge bg-info-subtle text-info border border-info-subtle">Validation Checklist</span>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card h-100 border-success">
+                <div class="card-header bg-success text-white fw-bold small">
+                  <i class="bi bi-check-circle-fill me-1"></i> What You MUST Do (Best Practices)
+                </div>
+                <div class="card-body small">
+                  <ul class="ps-3 mb-0 text-secondary">
+                    <li class="mb-2"><strong>Use Standard Date Format:</strong> Always use <code>YYYY-MM-DD</code> (e.g. <code>2014-03-15</code>). Excel cells formatted as Standard Date or Text both work correctly.</li>
+                    <li class="mb-2"><strong>Ensure CNIC Consistency:</strong> Always double-check that the CNIC in the <code>Qualifications</code> sheet exactly matches the CNIC in <code>Teachers_Data</code>.</li>
+                    <li class="mb-2"><strong>Fill Regularization Date:</strong> The system bases service seniority strictly on regular service. If regularization date is blank, it falls back to appointment date.</li>
+                    <li class="mb-2"><strong>Mark B.Ed as Professional:</strong> Always ensure <code>Is_Professional = Yes</code> for teaching degrees. Leaving it as <code>No</code> will cause the promotion engine to flag the candidate as lacking a professional degree.</li>
+                    <li><strong>Review the Preview Summary:</strong> Before clicking "Confirm &amp; Import", inspect the validation preview for any warnings or skipped rows.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card h-100 border-danger">
+                <div class="card-header bg-danger text-white fw-bold small">
+                  <i class="bi bi-x-circle-fill me-1"></i> What to Avoid (Common Pitfalls)
+                </div>
+                <div class="card-body small">
+                  <ul class="ps-3 mb-0 text-secondary">
+                    <li class="mb-2"><strong>Do NOT Rename Column Headers:</strong> The import parser looks for exact column names like <code>CNIC</code>, <code>Full_Name</code>, <code>Current_Designation</code>. Modifying them causes column mapping failure.</li>
+                    <li class="mb-2"><strong>Do NOT Alter Sheet Names:</strong> Keep the sheet tab titles as <code>Teachers_Data</code> and <code>Qualifications</code>.</li>
+                    <li class="mb-2"><strong>Avoid Malformed CNICs:</strong> Avoid extra spaces or text inside CNIC cells. Use clean 13 digits (e.g. <code>35201-1234567-9</code> or <code>3520112345679</code>).</li>
+                    <li class="mb-2"><strong>Do NOT Delete Header Rows:</strong> Keep Row 1 as the column header row. Data rows start from Row 2.</li>
+                    <li><strong>Don't Worry About Duplicates (Upsert Safe):</strong> You don't need to manually filter out teachers who already exist. The system automatically detects existing CNICs and updates their records instead of creating duplicate profiles.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-primary border-primary-subtle d-flex align-items-center gap-3 mt-4 mb-0">
+            <i class="bi bi-person-check-fill fs-3 text-primary flex-shrink-0"></i>
+            <div class="small">
+              <strong>Automated Teacher Portal Credentials:</strong> When teachers are newly added through Excel, the system automatically provisions secure portal credentials for them: <code>Username = Teacher's CNIC</code> and <code>Default Password = Teacher@123</code>. Teachers can log in immediately to review their records, complete missing values, and verify their data.
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+

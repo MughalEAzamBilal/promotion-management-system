@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+{% block title %}Home - Teacher Promotion Portal{% endblock %}
+
+{% block content %}
+<!-- ======================================================================
+     HERO BANNER SECTION
+     ====================================================================== -->
+<section class="landing-hero py-5 text-white position-relative overflow-hidden">
+  <div class="hero-bg-overlay"></div>
+  <div class="container position-relative py-lg-4">
+    <div class="row align-items-center g-4">
+      
+      <!-- Left Column: Title & Action Suite -->
+      <div class="col-lg-7">
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 mb-3 rounded-pill hero-badge">
+          <span class="badge bg-gold text-dark fw-bold px-2 py-1">SED</span>
+          <span class="small fw-semibold text-white-50">School Education Department</span>
+        </div>
+
+        <h1 class="display-5 fw-extrabold text-white mb-3 hero-title">
+          Teacher Promotion <span class="text-gold">Portal</span>
+        </h1>
+
+        <p class="lead text-white-50 mb-4 hero-subtitle">
+          The official digital authority for automated Seniority-cum-Fitness scrutiny, district seniority rolls, and promotion quota allocation in strict conformity with the <strong>School Education Department Service Rules 2014</strong>.
+        </p>
+
+        <!-- CTA Action Buttons -->
+        <div class="d-flex flex-wrap gap-3 mb-4">
+          <a href="{{ url_for('auth.login') }}" class="btn btn-gold btn-lg px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
+            <i class="bi bi-box-arrow-in-right fs-5"></i>
+            <span>Portal Sign In</span>
+          </a>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-outline-light btn-lg px-4 py-2 fw-semibold d-flex align-items-center gap-2">
+            <i class="bi bi-person-badge fs-5"></i>
+            <span>Register as Admin</span>
+          </a>
+          <a href="{{ url_for('auth.forgot_password') }}" class="btn btn-outline-warning btn-lg px-4 py-2 fw-semibold d-flex align-items-center gap-2">
+            <i class="bi bi-key fs-5"></i>
+            <span>Forgot Password?</span>
+          </a>
+        </div>
+
+        <!-- Trust & Compliance Badges -->
+        <div class="d-flex flex-wrap align-items-center gap-3 text-white-50 small pt-2">
+          <div><i class="bi bi-patch-check-fill text-gold me-1"></i> 100% Statutory 2014 Rules</div>
+          <div><i class="bi bi-shield-lock-fill text-success me-1"></i> Encrypted RBAC Access</div>
+          <div><i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i> Official Gazette Reports</div>
+        </div>
+      </div>
+
+      <!-- Right Column: Interactive Quick Card -->
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-lg hero-glass-card rounded-4 p-4 text-dark">
+          <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success p-2 rounded-3"><i class="bi bi-shield-check fs-6 text-white"></i></span>
+              <div>
+                <h6 class="mb-0 fw-bold" style="color: var(--punjab-dark);">Authorized Access Portal</h6>
+                <small class="text-muted">Single Sign-On for Teachers &amp; DEOs</small>
+              </div>
+            </div>
+            <span class="badge bg-light text-success border">LIVE</span>
+          </div>
+
+          <p class="small text-muted mb-3">
+            Teachers may log in using their 13-digit CNIC to review seniority standing, while authorized district operators manage DPC candidate rolls.
+          </p>
+
+          <div class="list-group list-group-flush mb-3 small">
+            <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-mortarboard-fill text-success me-2"></i><strong>PST &rarr; EST (BS-15)</strong></span>
+              <span class="badge bg-light text-dark border">50% Promotion Quota</span>
+            </div>
+            <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-briefcase-fill text-primary me-2"></i><strong>EST &rarr; SST (BS-16)</strong></span>
+              <span class="badge bg-light text-dark border">Seniority-cum-Fitness</span>
+            </div>
+            <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-award-fill text-gold me-2"></i><strong>SST &rarr; BS-17 (HM/SS)</strong></span>
+              <span class="badge bg-light text-dark border">2 Yrs Regular Service</span>
+            </div>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-6">
+              <a href="{{ url_for('auth.login') }}" class="btn btn-punjab w-100 fw-semibold btn-sm py-2">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+              </a>
+            </div>
+            <div class="col-6">
+              <a href="{{ url_for('auth.register') }}" class="btn btn-outline-secondary w-100 fw-semibold btn-sm py-2">
+                <i class="bi bi-person-plus me-1"></i> Admin Sign Up
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     LIVE TELEMETRY & STATS BAR
+     ====================================================================== -->
+<section class="py-4 bg-white border-bottom shadow-sm">
+  <div class="container">
+    <div class="row g-3 text-center">
+      <div class="col-md-3 col-6">
+        <div class="p-3 rounded-3 stat-banner-box">
+          <div class="stat-banner-num text-success fw-bold">{{ stats.total_teachers }}</div>
+          <div class="stat-banner-label">Active Registered Teachers</div>
+          <small class="text-muted">PST, EST, and SST Cadres</small>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="p-3 rounded-3 stat-banner-box">
+          <div class="stat-banner-num text-primary fw-bold">{{ stats.total_rules }}</div>
+          <div class="stat-banner-label">Statutory Promotion Rules</div>
+          <small class="text-muted">SED Rules 2014</small>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="p-3 rounded-3 stat-banner-box">
+          <div class="stat-banner-num text-warning fw-bold">{{ stats.total_vacancies }}</div>
+          <div class="stat-banner-label">Vacant Seat Quotas</div>
+          <small class="text-muted">50% Promotion vs Direct</small>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="p-3 rounded-3 stat-banner-box">
+          <div class="stat-banner-num text-danger fw-bold">{{ stats.total_districts }}</div>
+          <div class="stat-banner-label">Districts Covered</div>
+          <small class="text-muted">Full Provincial Deployment</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     CORE PILLARS & FEATURES
+     ====================================================================== -->
+<section class="py-5 bg-light">
+  <div class="container">
+    
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <span class="badge bg-punjab-subtle text-punjab px-3 py-1 rounded-pill mb-2 fw-bold text-uppercase">Statutory System Architecture</span>
+      <h2 class="fw-bold" style="color: var(--punjab-dark);">Engineered for Merit, Transparency &amp; Speed</h2>
+      <p class="text-muted">Comprehensive digitisation eliminating clerical errors and ensuring non-discretionary compliance with the Department's gazetted rules.</p>
+    </div>
+
+    <div class="row g-4">
+      
+      <!-- Feature 1 -->
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-4 feature-card">
+          <div class="feature-icon bg-success-subtle text-success mb-3">
+            <i class="bi bi-cpu-fill fs-3"></i>
+          </div>
+          <h5 class="fw-bold mb-2">8-Point Statutory Scrutiny</h5>
+          <p class="text-muted small mb-0">
+            Automated scrutiny of Designation match, Regular Service length, Prescribed Academic Degree, Professional Teaching Degree (B.Ed/M.Ed), Profile Clearance, PEEDA inquiry status, ACR scores, and Vacancy Quota zones.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 2 -->
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-4 feature-card">
+          <div class="feature-icon bg-primary-subtle text-primary mb-3">
+            <i class="bi bi-sort-numeric-down fs-3"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Seniority-cum-Fitness Roll</h5>
+          <p class="text-muted small mb-0">
+            Continuous grade service ordering with strict Date of Birth (DOB) tie-breaking precedence. Ensures senior candidates are considered ahead without subjective interference.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-4 feature-card">
+          <div class="feature-icon bg-warning-subtle text-warning mb-3">
+            <i class="bi bi-file-earmark-spreadsheet-fill fs-3"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Dual Template Bulk Sync</h5>
+          <p class="text-muted small mb-0">
+            Dedicated Multi-Sheet Excel templates for synchronized import and bulk qualification updates, featuring 80+ pre-coded statutory degrees and university catalogs.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 4 -->
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-4 feature-card">
+          <div class="feature-icon bg-danger-subtle text-danger mb-3">
+            <i class="bi bi-shield-lock-fill fs-3"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Departmental Password Helpdesk</h5>
+          <p class="text-muted small mb-0">
+            Secure self-service password reset requests verified against CNIC, Personnel No, Phone, and Email, followed by administrator dispatch via official SMS or Email.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 5 -->
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-4 feature-card">
+          <div class="feature-icon bg-info-subtle text-info mb-3">
+            <i class="bi bi-printer-fill fs-3"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Gazette PDF &amp; DPC Rolls</h5>
+          <p class="text-muted small mb-0">
+            Instantly render high-resolution Landscape PDF Gazettes and Excel workbooks for Departmental Promotion Committees (DPC) with candidate scrutiny breakdowns.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 6 -->
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-4 feature-card">
+          <div class="feature-icon bg-secondary-subtle text-secondary mb-3">
+            <i class="bi bi-clock-history fs-3"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Inactivity Timeout &amp; Audit</h5>
+          <p class="text-muted small mb-0">
+            30-minute idle session timeout protection with interactive warning modal and an immutable audit trail capturing all administrative verifications and logins.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<!-- ======================================================================
+     PROMOTION CADRES PATHWAYS
+     ====================================================================== -->
+<section class="py-5 bg-white">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      
+      <div class="col-lg-5">
+        <span class="badge bg-gold text-dark px-3 py-1 rounded-pill mb-2 fw-bold text-uppercase">SED Service Rules 2014</span>
+        <h2 class="fw-bold mb-3" style="color: var(--punjab-dark);">Official Teaching Cadre Promotion Pathways</h2>
+        <p class="text-muted mb-4">
+          All promotion channels are configured strictly per official schedules and gazette notifications issued by the School Education Department.
+        </p>
+        <div class="d-grid gap-2">
+          <a href="{{ url_for('auth.login') }}" class="btn btn-punjab py-2 fw-semibold">
+            <i class="bi bi-arrow-right-circle me-1"></i> Access Promotion Lists
+          </a>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="row g-3">
+          
+          <div class="col-md-6">
+            <div class="p-3 rounded-3 border bg-light h-100">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-success">Tier 1 &bull; 50% Quota</span>
+                <small class="text-muted fw-bold">BS-14 &rarr; BS-15</small>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">PST to EST Promotions</h6>
+              <p class="small text-muted mb-2">
+                Primary School Teachers (PST) promoted to Elementary School Teachers in Science, Arts, Arabic, English, Math, and Vernacular categories.
+              </p>
+              <div class="small fw-semibold text-success"><i class="bi bi-check2-circle me-1"></i> Seniority-cum-Fitness + B.Ed</div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 rounded-3 border bg-light h-100">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-primary">Tier 2 &bull; Secondary</span>
+                <small class="text-muted fw-bold">BS-15 &rarr; BS-16</small>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">EST to SST Promotions</h6>
+              <p class="small text-muted mb-2">
+                Elementary School Teachers promoted to Secondary School Teachers across Science, Arts, Computer Science, and Technical disciplines.
+              </p>
+              <div class="small fw-semibold text-primary"><i class="bi bi-check2-circle me-1"></i> Master Degree / BS + Professional</div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 rounded-3 border bg-light h-100">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-warning text-dark">Tier 3 &bull; Gazetted</span>
+                <small class="text-muted fw-bold">BS-16 &rarr; BS-17</small>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">SST to Headmaster / SS</h6>
+              <p class="small text-muted mb-2">
+                Secondary School Teachers promoted to Headmaster, Headmistress, and Subject Specialists in High and Higher Secondary schools.
+              </p>
+              <div class="small fw-semibold text-warning"><i class="bi bi-check2-circle me-1"></i> 2.0 Yrs Regular Service Minimum</div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 rounded-3 border bg-light h-100">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-danger">Tier 4 &bull; Senior Post</span>
+                <small class="text-muted fw-bold">BS-17 &rarr; BS-18</small>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">BS-17 to Senior Headmaster</h6>
+              <p class="small text-muted mb-2">
+                Headmasters and Subject Specialists promoted to Senior Headmaster / Senior Subject Specialist grade.
+              </p>
+              <div class="small fw-semibold text-danger"><i class="bi bi-check2-circle me-1"></i> 5.0 Yrs Continuous BS-17 Tenure</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     CTA HELP & FOOTER TEASER
+     ====================================================================== -->
+<section class="py-5 text-white" style="background: linear-gradient(135deg, var(--punjab-dark) 0%, #157347 100%);">
+  <div class="container text-center py-3">
+    <span class="gov-logo-badge mb-3 d-inline-block">SCHOOL EDUCATION DEPARTMENT</span>
+    <h2 class="fw-bold text-white mb-3">Ready to Access Your Service &amp; Promotion Records?</h2>
+    <p class="lead text-white-50 max-w-700 mx-auto mb-4">
+      Log in with your official credentials or register your district administration account to begin official processing.
+    </p>
+    <div class="d-flex justify-content-center flex-wrap gap-3">
+      <a href="{{ url_for('auth.login') }}" class="btn btn-gold btn-lg px-4 py-2 fw-bold">
+        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Portal
+      </a>
+      <a href="{{ url_for('auth.register') }}" class="btn btn-outline-light btn-lg px-4 py-2 fw-semibold">
+        <i class="bi bi-person-badge me-1"></i> Register as Admin
+      </a>
+      <a href="{{ url_for('auth.forgot_password') }}" class="btn btn-link text-white-50 text-decoration-none d-flex align-items-center">
+        <i class="bi bi-question-circle me-1"></i> Need Help / Forgot Password?
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}System & Security Audit Logs - Provincial Administrator{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-shield-check text-success me-2"></i> Security &amp; Activity Audit Logs</h1>
+        <p class="page-subtitle">Immutable audit trail of administrative actions, verifications, imports, and logins.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="fw-bold">Audit Trail (Last 200 Actions)</span>
+      <input type="text" id="tableFilterInput" class="form-control form-control-sm w-auto" placeholder="Filter logs...">
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit filterable-table mb-0">
+          <thead>
+            <tr>
+              <th style="width: 20%;">Timestamp &amp; Origin</th>
+              <th style="width: 18%;">User &amp; Role</th>
+              <th style="width: 22%;">Action &amp; Target Entity</th>
+              <th style="width: 40%;">Operational Audit Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td>
+                <div class="fw-semibold text-dark small">{{ log.created_at.strftime('%d-%m-%Y %H:%M:%S') }}</div>
+                <div class="small text-muted font-monospace"><i class="bi bi-hdd-network me-1"></i>{{ log.ip_address or 'Local' }}</div>
+              </td>
+              <td>
+                <div class="fw-bold text-dark">{{ log.username }}</div>
+                <div><span class="badge bg-light text-dark border small">{{ log.role }}</span></div>
+              </td>
+              <td>
+                <div class="mb-1"><span class="badge bg-secondary">{{ log.action }}</span></div>
+                {% if log.entity_type %}
+                  <span class="badge bg-light text-secondary border small">{{ log.entity_type }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="small text-secondary text-break">{{ log.details or '-' }}</div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No audit logs recorded yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

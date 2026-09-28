@@ -1,0 +1,1721 @@
+{% extends 'base.html' %}
+{% block title %}Promotion Eligibility Lists - {{ selected_rule.target_designation }} (BS-{{ selected_rule.target_bs }}){% endblock %}
+
+{% block content %}
+<!-- Executive Page Header Bar -->
+<div class="page-header-bar bg-white border-bottom shadow-xs py-3 mb-4">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-success-subtle text-success border border-success px-2 py-1 small fw-semibold">
+            <i class="bi bi-shield-check me-1"></i> SED Service Rules 2014
+          </span>
+          <span class="badge bg-light text-muted border px-2 py-1 small">
+            District Promotion Committee (DPC)
+          </span>
+        </div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+          <i class="bi bi-award-fill text-warning me-2"></i> Official Promotion Eligibility Lists
+        </h1>
+        <p class="text-secondary small mb-0">
+          Statutory Seniority-cum-Fitness Evaluation Roll &bull; 2:1 DPC Consideration Panel &bull; Official Cadre Progression
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <a href="{{ url_for('admin.promotion_runs') }}" class="btn btn-punjab btn-sm shadow-sm px-3" title="View Promotion Runs Archive">
+          <i class="bi bi-journal-bookmark me-1"></i> Promotion Runs ({{ runs|length if runs is defined else 'Archive' }})
+        </a>
+        <a href="{{ url_for('admin.download_promotion_list_pdf', rule_id=selected_rule.id, district=district, status=status_filter) }}"
+           class="btn btn-outline-danger btn-sm shadow-sm px-3" title="Download Official Gazette PDF">
+          <i class="bi bi-file-earmark-pdf-fill me-1"></i> Gazette PDF
+        </a>
+        <a href="{{ url_for('admin.download_promotion_list_excel', rule_id=selected_rule.id, district=district, status=status_filter) }}"
+           class="btn btn-outline-success btn-sm shadow-sm px-3" title="Download Promotion Roll Spreadsheet">
+          <i class="bi bi-file-earmark-excel-fill me-1"></i> Excel (.xlsx)
+        </a>
+        <a href="{{ url_for('admin.vacancies') }}" class="btn btn-outline-secondary btn-sm shadow-sm px-3" title="Manage District Vacancies & Quotas">
+          <i class="bi bi-pie-chart-fill me-1"></i> Vacancy Quotas
+        </a>
+        <button type="button" onclick="window.print()" class="btn btn-outline-dark btn-sm shadow-sm px-3" title="Print Promotion Roll">
+          <i class="bi bi-printer-fill me-1"></i> Print Roll
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+
+  <!-- =========================================================================
+       PROMOTION PRE-FLIGHT CHECKLIST & SCRUTINY RUN BUILDER
+       ========================================================================= -->
+  <div class="card border-0 shadow-sm mb-4 overflow-hidden border-start border-4 {% if all_preflight_passed %}border-success{% else %}border-warning{% endif %}">
+    <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-clipboard2-check-fill {% if all_preflight_passed %}text-success{% else %}text-warning{% endif %} fs-5"></i>
+        <h6 class="card-title mb-0 fw-bold text-dark">PROMOTION PRE-FLIGHT CHECKLIST</h6>
+        <span class="small text-muted">&bull; {{ selected_rule.target_designation }} (BS-{{ selected_rule.target_bs }}) &bull; {{ district }}</span>
+      </div>
+      <div>
+        {% if all_preflight_passed %}
+          <span class="badge bg-success-subtle text-success border border-success px-3 py-2 fw-bold">
+            <i class="bi bi-check-circle-fill me-1"></i> ✓ Pre-Flight Safeguards Satisfied
+          </span>
+        {% else %}
+          <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-3 py-2 fw-bold">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> Pre-Flight Safeguards Need Attention
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card-body p-4">
+      <div class="row g-3 mb-3">
+        {% for item in preflight_checklist %}
+        <div class="col-lg-4 col-md-6">
+          <div class="p-2 px-3 rounded-3 border d-flex align-items-center justify-content-between {% if item.passed %}bg-light border-light-subtle{% else %}bg-danger-subtle border-danger text-danger{% endif %}">
+            <div class="d-flex align-items-center gap-2">
+              {% if item.passed %}
+                <span class="text-success fw-bold fs-6">✓</span>
+                <span class="small fw-semibold text-dark">{{ item.name }}</span>
+              {% else %}
+                <span class="text-danger fw-bold fs-6">❌</span>
+                <span class="small fw-bold text-danger">{{ item.name }}</span>
+              {% endif %}
+            </div>
+            {% if not item.passed %}
+              <a href="{{ item.fix_url }}" class="btn btn-xs btn-outline-danger py-0 px-2 fw-bold" style="font-size: 0.72rem;">
+                {{ item.fix_text }}
+              </a>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top gap-2">
+        <div class="small text-muted">
+          <i class="bi bi-info-circle me-1"></i>
+          Pre-flight checks prevent generating incomplete promotion rolls or running scrutiny before vacancies and DPC schedules are entered.
+        </div>
+        <div>
+          <button type="button" class="btn {% if all_preflight_passed %}btn-success{% else %}btn-warning text-dark{% endif %} btn-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#createPromotionRunModal">
+            <i class="bi bi-play-circle-fill me-1"></i>
+            {% if all_preflight_passed %}
+              RUN OFFICIAL SCRUTINY / CREATE PROMOTION RUN &rarr;
+            {% else %}
+              Generate Scrutiny Run (With Warnings) &rarr;
+            {% endif %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Promotion Run Modal -->
+  <div class="modal fade" id="createPromotionRunModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="{{ url_for('admin.create_promotion_run') }}">
+          <input type="hidden" name="rule_id" value="{{ selected_rule.id }}">
+          <input type="hidden" name="district" value="{{ district }}">
+          
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold text-dark">
+              <i class="bi bi-journal-plus text-primary me-2"></i>Create Official Promotion Run
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          
+          <div class="modal-body">
+            <div class="p-3 bg-light rounded-3 mb-3 border">
+              <div class="small text-muted text-uppercase fw-bold">Target Cadre &amp; Channel</div>
+              <div class="fw-bold text-primary fs-6">{{ selected_rule.target_designation }} (BS-{{ selected_rule.target_bs }})</div>
+              <div class="small text-dark mt-1">
+                District: <strong>{{ district }}</strong> &bull; Quota: <strong>{{ selected_rule.promotion_quota_percent }}%</strong> &bull; Feeder: <strong>{{ selected_rule.source_designation }}</strong>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-muted text-uppercase">Statutory Cutoff Date <span class="text-danger">*</span></label>
+              <input type="date" name="cutoff_date" class="form-control" value="{{ cutoff_date_val if cutoff_date_val is defined else '' }}" required>
+              <div class="form-text small">Service length and superannuation age will be calculated strictly as of this cutoff date.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold small text-muted text-uppercase">Official Remarks / DPC Meeting Reference</label>
+              <textarea name="notes" rows="2" class="form-control" placeholder="e.g. Annual DPC Review for Elementary to Secondary Grade Promoted Cadres..."></textarea>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-success btn-sm fw-bold">
+              <i class="bi bi-camera-fill me-1"></i> Create Run &amp; Snapshot Candidates
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       REDESIGNED: Target Promotion Post & Category Selection Suite
+       ========================================================================= -->
+  <div class="card shadow-sm border-0 mb-4 overflow-hidden" style="border-top: 4px solid var(--punjab-primary) !important;">
+    <div class="card-header bg-white py-3 border-bottom">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+          <h6 class="mb-0 fw-bold text-dark">
+            <i class="bi bi-diagram-3-fill text-success me-2"></i> Select Target Promotion Post &amp; Category
+          </h6>
+          <span class="small text-muted">
+            Filter by Cadre Tier, Target Grade, Discipline / Subject Stream, and District
+          </span>
+        </div>
+        <div class="small text-muted">
+          Active Channel: <span class="badge bg-punjab text-white fw-semibold">{{ selected_rule.source_designation }} (BS-{{ selected_rule.source_bs }}) &rarr; {{ selected_rule.target_designation }} (BS-{{ selected_rule.target_bs }})</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-3 p-lg-4 bg-light-subtle">
+      <!-- Cadre Quick Filter Pills -->
+      <div class="mb-3">
+        <label class="form-label small fw-bold text-muted text-uppercase letter-spacing-1 mb-2">
+          <i class="bi bi-layers-half me-1"></i> Cadre Progression Channels:
+        </label>
+        <div class="d-flex flex-wrap gap-2" id="cadrePillsContainer">
+          <button type="button"
+                  class="btn btn-sm {% if active_cadre_key == 'ALL' %}btn-punjab text-white shadow-sm{% else %}btn-outline-secondary bg-white{% endif %} cadre-filter-pill"
+                  data-cadre-filter="ALL">
+            <i class="bi bi-collection me-1"></i> All Cadres ({{ rules|length }})
+          </button>
+          {% for grp in cadre_groups %}
+            {% if grp.rules|length > 0 %}
+            <button type="button"
+                    class="btn btn-sm {% if active_cadre_key == grp.key %}btn-punjab text-white shadow-sm{% else %}btn-outline-secondary bg-white{% endif %} cadre-filter-pill"
+                    data-cadre-filter="{{ grp.key }}"
+                    data-first-rule-id="{{ grp.rules[0].id }}">
+              <span class="badge bg-light text-dark border me-1">{{ grp.target_scale }}</span>
+              {{ grp.short_label }}
+              <span class="badge bg-secondary-subtle text-secondary ms-1">({{ grp.rules|length }})</span>
+            </button>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Main Selection Form -->
+      <form id="promoFilterForm" method="GET" action="{{ url_for('admin.promotion_lists') }}" class="row g-3 align-items-end">
+        <input type="hidden" name="status" value="{{ status_filter }}">
+
+        <!-- Target Promotion Post & Category Dropdown -->
+        <div class="col-lg-6 col-md-7">
+          <label for="targetRuleSelect" class="form-label small fw-bold text-dark d-flex justify-content-between align-items-center mb-1">
+            <span><i class="bi bi-check2-square text-primary me-1"></i> Target Promotion Post &amp; Category Dropdown <span class="text-danger">*</span></span>
+            <span class="badge bg-light text-muted border fw-normal" id="ruleCountBadge">{{ rules|length }} Available Rules</span>
+          </label>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0 text-punjab">
+              <i class="bi bi-briefcase-fill"></i>
+            </span>
+            <select name="rule_id" id="targetRuleSelect" class="form-select form-select-lg border-start-0 fs-6 fw-semibold shadow-none" onchange="this.form.submit()">
+              {% for grp in cadre_groups %}
+                {% if grp.rules|length > 0 %}
+                <optgroup label="{{ grp.label }}" data-cadre-group="{{ grp.key }}">
+                  {% for r in grp.rules %}
+                    <option value="{{ r.id }}"
+                            data-cadre="{{ grp.key }}"
+                            {% if r.id == selected_rule.id %}selected{% endif %}>
+                      {{ r.target_designation }} (BS-{{ r.target_bs }}) &bull; {{ r.promotion_category }} [Feeder: {{ r.source_designation }} (BS-{{ r.source_bs }})]
+                    </option>
+                  {% endfor %}
+                </optgroup>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-text small text-muted">
+            Selecting a post immediately loads its statutory eligibility criteria and candidate roll.
+          </div>
+        </div>
+
+        <!-- District Selection Dropdown -->
+        <div class="col-lg-3 col-md-5">
+          <label for="districtSelect" class="form-label small fw-bold text-dark mb-1">
+            <i class="bi bi-geo-alt-fill text-danger me-1"></i> District Roster:
+          </label>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0 text-danger">
+              <i class="bi bi-pin-map-fill"></i>
+            </span>
+            <select name="district" id="districtSelect" class="form-select border-start-0 shadow-none fw-semibold" onchange="this.form.submit()">
+              {% for d in districts %}
+                <option value="{{ d }}" {% if d == district %}selected{% endif %}>
+                  District: {{ d }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-text small text-muted">
+            Cadre seniority and vacancies are segregated by district.
+          </div>
+        </div>
+
+        <!-- Apply / Refresh Button -->
+        <div class="col-lg-3 col-md-12">
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-punjab w-100 shadow-sm">
+              <i class="bi bi-arrow-clockwise me-1"></i> Load Promotion Roll
+            </button>
+            <a href="{{ url_for('admin.promotion_assessment', rule_id=selected_rule.id) }}" class="btn btn-outline-secondary shadow-sm text-nowrap" title="Individual Teacher Eligibility Scrutiny Engine">
+              <i class="bi bi-person-check me-1"></i> Single Scrutiny
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       ACTIVE RULE STATUTORY DOSSIER & PROGRESSION FLOW
+       ========================================================================= -->
+  <div class="card shadow-sm border-0 mb-4 bg-white">
+    <div class="card-body p-3 p-lg-4">
+      <div class="row g-3 align-items-center">
+        <!-- Feeder -> Target Visual Flow -->
+        <div class="col-xl-7 col-lg-8">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <span class="badge bg-secondary-subtle text-dark border px-2 py-1">
+              <strong>Feeder:</strong> {{ selected_rule.source_designation }} (BS-{{ selected_rule.source_bs }})
+            </span>
+            <i class="bi bi-arrow-right-circle-fill text-punjab fs-5"></i>
+            <span class="badge bg-punjab text-white px-3 py-1 fs-6">
+              <strong>Target:</strong> {{ selected_rule.target_designation }} (BS-{{ selected_rule.target_bs }})
+            </span>
+            <span class="badge bg-info-subtle text-info-emphasis border px-2 py-1">
+              Category: {{ selected_rule.promotion_category }}
+            </span>
+            <span class="badge bg-success text-white px-2 py-1">
+              {{ selected_rule.quota_percentage }}% Promotion Quota
+            </span>
+          </div>
+
+          <h5 class="fw-bold text-dark mb-2">{{ selected_rule.rule_name }}</h5>
+
+          <!-- Rule Requirements Grid -->
+          <div class="row g-2 pt-1">
+            <div class="col-md-6">
+              <div class="p-2 border rounded bg-light small">
+                <span class="text-muted d-block small fw-bold text-uppercase">Prescribed Academic Degree:</span>
+                <span class="fw-semibold text-dark">{{ selected_rule.required_degree_level }} ({{ selected_rule.required_degree_names }})</span>
+                <div class="text-secondary small">Subjects: <em>{{ selected_rule.required_subjects }}</em></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="p-2 border rounded bg-light small">
+                <span class="text-muted d-block small fw-bold text-uppercase">Professional Degree:</span>
+                <span class="fw-semibold text-dark">{{ selected_rule.required_professional_degree }}</span>
+                <div class="text-secondary small">B.Ed / ADE / B.S.Ed required as per SED schedule</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="p-2 border rounded bg-light small">
+                <span class="text-muted d-block small fw-bold text-uppercase">Statutory Minimum Service:</span>
+                {% if selected_rule.min_regular_service_years == 0 %}
+                  <span class="badge bg-success-subtle text-success border border-success fw-bold">
+                    0.0 Years (Seniority-cum-Fitness)
+                  </span>
+                  <div class="text-muted small">No minimum service length prescribed under Rules 2014</div>
+                {% else %}
+                  <span class="badge bg-primary-subtle text-primary border border-primary fw-bold">
+                    {{ selected_rule.min_regular_service_years }} Years Regular Service
+                  </span>
+                  <div class="text-muted small">In feeder cadre grade prior to DPC consideration</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="p-2 border rounded bg-light small">
+                <span class="text-muted d-block small fw-bold text-uppercase">Statutory Reference &amp; Authority:</span>
+                <span class="fw-semibold text-dark">{{ selected_rule.source.title if selected_rule.source else 'SED Service Rules 2014' }}</span>
+                <div class="text-secondary small font-monospace">{{ selected_rule.source.notification_no if selected_rule.source else 'SOR-III(S&GAD)1-19/2004(P)' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statutory Seniority-cum-Fitness Guidance & 2:1 Panel Policy -->
+        <div class="col-xl-5 col-lg-4">
+          <div class="card bg-info-subtle border-0 rounded-3 p-3 h-100">
+            <div class="d-flex align-items-center gap-2 mb-2 text-info-emphasis">
+              <i class="bi bi-shield-fill-check fs-5"></i>
+              <strong class="small text-uppercase">Seniority-cum-Fitness &amp; 2:1 Panel Policy</strong>
+            </div>
+            <p class="small text-secondary mb-2" style="font-size: 0.82rem; line-height: 1.45;">
+              <strong>1. Cadre Seniority:</strong> Non-selection promotions are evaluated strictly in order of official civil service seniority position.
+            </p>
+            <p class="small text-secondary mb-2" style="font-size: 0.82rem; line-height: 1.45;">
+              <strong>2. Tie Resolution:</strong> If two candidates share the exact same seniority position, precedence is determined by <strong>Date of Birth (greater age)</strong>.
+            </p>
+            <p class="small text-secondary mb-0" style="font-size: 0.82rem; line-height: 1.45;">
+              <strong>3. Consideration Panel (2:1 Ratio):</strong> For promotion up to BS-18, the consideration panel operates on a <strong>2:1 ratio</strong> (2 candidates scrutinized per promotional vacancy).
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       DISTRICT VACANCY QUOTA PROGRESS BAR & SUMMARY
+       ========================================================================= -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-12">
+      <div class="card shadow-sm border-0 bg-white">
+        <div class="card-body p-3">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <div>
+              <span class="small fw-bold text-uppercase text-muted">
+                <i class="bi bi-building-check text-success me-1"></i> District {{ district }} &bull; Vacancy Quota Assessment for {{ selected_rule.target_designation }}
+              </span>
+            </div>
+            {% if vacancy %}
+              <div class="small">
+                Sanctioned: <strong>{{ vacancy.sanctioned_posts }}</strong> &bull;
+                Filled: <strong>{{ vacancy.filled_posts }}</strong> &bull;
+                Vacant: <strong class="text-danger">{{ vacancy.vacant_posts }}</strong> &bull;
+                Promotion Quota (50%): <strong class="text-success">{{ vacancy.promotion_quota_posts }} Posts</strong> &bull;
+                Statutory 2:1 DPC Panel: <strong class="text-primary">{{ vacancy.promotion_quota_posts * 2 }} Officers</strong>
+              </div>
+            {% else %}
+              <div class="small text-muted">
+                No vacancy quota configured for {{ selected_rule.target_designation }} in {{ district }}. <a href="{{ url_for('admin.vacancies') }}" class="fw-semibold">Add Vacancy Record</a>
+              </div>
+            {% endif %}
+          </div>
+
+          {% if vacancy and vacancy.vacant_posts > 0 %}
+          {% set promo_pct = ((vacancy.promotion_quota_posts / vacancy.vacant_posts) * 100)|round|int %}
+          {% set direct_pct = 100 - promo_pct %}
+          <div class="progress" style="height: 10px;">
+            <div class="progress-bar bg-success" id="promoQuotaBar" role="progressbar" aria-valuenow="{{ promo_pct }}" aria-valuemin="0" aria-valuemax="100" data-width="{{ promo_pct }}" title="50% Promotion Channel: {{ vacancy.promotion_quota_posts }} Posts"></div>
+            <div class="progress-bar bg-info" id="directQuotaBar" role="progressbar" aria-valuenow="{{ direct_pct }}" aria-valuemin="0" aria-valuemax="100" data-width="{{ direct_pct }}" title="Direct Recruitment Channel: {{ vacancy.direct_quota_posts }} Posts"></div>
+          </div>
+          <script>
+            (function() {
+              var pBar = document.getElementById('promoQuotaBar');
+              var dBar = document.getElementById('directQuotaBar');
+              if (pBar) pBar.style.width = '{{ promo_pct }}%';
+              if (dBar) dBar.style.width = '{{ direct_pct }}%';
+            })();
+          </script>
+          <div class="d-flex justify-content-between small text-muted mt-1" style="font-size: 0.75rem;">
+            <span><i class="bi bi-square-fill text-success me-1"></i> Promotion Channel ({{ vacancy.promotion_quota_posts }} Posts)</span>
+            <span><i class="bi bi-square-fill text-info me-1"></i> Initial / Direct Recruitment Channel ({{ vacancy.direct_quota_posts }} Posts)</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       INTERACTIVE KPI METRIC CARDS (CLICKABLE STATUS FILTERS)
+       ========================================================================= -->
+  <div class="row g-3 mb-4">
+    <!-- Total Evaluated -->
+    <div class="col-sm-6 col-lg-3 col-xl">
+      <a href="{{ url_for('admin.promotion_lists', rule_id=selected_rule.id, district=district, status='all') }}"
+         class="card shadow-sm border-0 text-decoration-none h-100 transition-hover {% if status_filter == 'all' %}border-start border-4 border-secondary bg-light-subtle shadow{% endif %}">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted small fw-bold text-uppercase">Total Evaluated</span>
+              <h3 class="fw-bold text-dark mb-0 mt-1">{{ total_candidates }}</h3>
+            </div>
+            <div class="rounded-circle bg-secondary-subtle p-3 text-secondary">
+              <i class="bi bi-people-fill fs-4"></i>
+            </div>
+          </div>
+          <div class="small text-muted mt-2">
+            Feeder cadre officers in {{ district }}
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Statutorily Eligible -->
+    <div class="col-sm-6 col-lg-3 col-xl">
+      <a href="{{ url_for('admin.promotion_lists', rule_id=selected_rule.id, district=district, status='eligible') }}"
+         class="card shadow-sm border-0 text-decoration-none h-100 transition-hover {% if status_filter == 'eligible' %}border-start border-4 border-success bg-success-subtle shadow{% endif %}">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-success small fw-bold text-uppercase">Eligible</span>
+              <h3 class="fw-bold text-success mb-0 mt-1">{{ eligible_count }}</h3>
+            </div>
+            <div class="rounded-circle bg-success-subtle p-3 text-success">
+              <i class="bi bi-check2-circle fs-4"></i>
+            </div>
+          </div>
+          <div class="small text-muted mt-2">
+            Meet degrees, service &amp; clearance
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Within 2:1 Panel Zone -->
+    <div class="col-sm-6 col-lg-3 col-xl">
+      <div class="card shadow-sm border-0 h-100 bg-white">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-primary small fw-bold text-uppercase">In 2:1 DPC Panel</span>
+              <h3 class="fw-bold text-primary mb-0 mt-1">{{ panel_zone_count }}</h3>
+            </div>
+            <div class="rounded-circle bg-primary-subtle p-3 text-primary">
+              <i class="bi bi-person-lines-fill fs-4"></i>
+            </div>
+          </div>
+          <div class="small text-muted mt-2">
+            Statutory consideration quota zone
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Promoted by DPC -->
+    <div class="col-sm-6 col-lg-3 col-xl">
+      <a href="{{ url_for('admin.promotion_lists', rule_id=selected_rule.id, district=district, status='promoted', tab='promoted') }}"
+         class="card shadow-sm border-0 text-decoration-none h-100 transition-hover {% if status_filter == 'promoted' or active_tab == 'promoted' %}border-start border-4 border-success bg-success-subtle shadow{% endif %}">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-success small fw-bold text-uppercase">Promoted</span>
+              <h3 class="fw-bold text-success mb-0 mt-1">{{ promoted_count }}</h3>
+            </div>
+            <div class="rounded-circle bg-success-subtle p-3 text-success">
+              <i class="bi bi-patch-check-fill fs-4"></i>
+            </div>
+          </div>
+          <div class="small text-muted mt-2">
+            Approved &amp; seniority appended
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Ineligible / Rejected -->
+    <div class="col-sm-6 col-lg-3 col-xl">
+      <a href="{{ url_for('admin.promotion_lists', rule_id=selected_rule.id, district=district, status='rejected') }}"
+         class="card shadow-sm border-0 text-decoration-none h-100 transition-hover {% if status_filter == 'rejected' %}border-start border-4 border-danger bg-danger-subtle shadow{% endif %}">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-danger small fw-bold text-uppercase">Ineligible / Rejected</span>
+              <h3 class="fw-bold text-danger mb-0 mt-1">{{ rejected_count }}</h3>
+            </div>
+            <div class="rounded-circle bg-danger-subtle p-3 text-danger">
+              <i class="bi bi-x-octagon-fill fs-4"></i>
+            </div>
+          </div>
+          <div class="small text-muted mt-2">
+            Shortfall, missing B.Ed or PEEDA
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       TABS NAVIGATION: CANDIDATE ASSESSMENT ROLL vs CURRENTLY PROMOTED TEACHERS
+       ========================================================================= -->
+  <ul class="nav nav-tabs border-bottom mb-3" id="promotionTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link {% if active_tab != 'promoted' %}active fw-bold text-success border-success border-bottom-0{% else %}text-secondary{% endif %}"
+              id="assessment-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#pane-assessment-roll"
+              type="button"
+              role="tab"
+              aria-controls="pane-assessment-roll"
+              aria-selected="{% if active_tab != 'promoted' %}true{% else %}false{% endif %}">
+        <i class="bi bi-person-lines-fill me-1"></i> Candidate Assessment Roll
+        <span class="badge bg-secondary-subtle text-secondary border ms-1">{{ candidates|length }}</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link {% if active_tab == 'promoted' %}active fw-bold text-success border-success border-bottom-0{% else %}text-secondary{% endif %}"
+              id="promoted-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#pane-promoted-teachers"
+              type="button"
+              role="tab"
+              aria-controls="pane-promoted-teachers"
+              aria-selected="{% if active_tab == 'promoted' %}true{% else %}false{% endif %}">
+        <i class="bi bi-patch-check-fill me-1 text-success"></i> Currently Promoted Teachers (Gazette Roll)
+        <span class="badge bg-success text-white ms-1">{{ promoted_records|length }}</span>
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="promotionTabsContent">
+    <!-- TAB 1: Candidate Assessment Roll -->
+    <div class="tab-pane fade {% if active_tab != 'promoted' %}show active{% endif %}" id="pane-assessment-roll" role="tabpanel" aria-labelledby="assessment-tab">
+      <div class="card shadow-sm border-0 overflow-hidden">
+    <div class="card-header bg-white py-3 border-bottom">
+      <div class="row align-items-center g-2">
+        <div class="col-md-6">
+          <div class="d-flex align-items-center gap-2">
+            <span class="fw-bold fs-6 text-dark">
+              <i class="bi bi-table text-punjab me-1"></i> Promotion Assessment Roll
+            </span>
+            <span class="badge bg-secondary-subtle text-secondary border">
+              Showing <span id="visibleCount">{{ candidates|length }}</span> of {{ total_candidates }} Candidates
+            </span>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex justify-content-md-end gap-2">
+            <div class="input-group input-group-sm" style="max-width: 320px;">
+              <span class="input-group-text bg-white border-end-0 text-muted">
+                <i class="bi bi-search"></i>
+              </span>
+              <input type="text"
+                     id="rollSearch"
+                     class="form-control border-start-0 shadow-none"
+                     placeholder="Search name, CNIC, school, sen #..."
+                     onkeyup="filterRollTable()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit mb-0 align-middle" id="candidatesRollTable">
+          <thead class="bg-light">
+            <tr>
+              <th style="width: 4%;" class="text-center">Sr. #</th>
+              <th style="width: 24%;">Seniority &amp; Candidate</th>
+              <th style="width: 26%;">Service &amp; Qualifications</th>
+              <th style="width: 23%;">Scrutiny &amp; Findings</th>
+              <th style="width: 11%;">DPC Decision</th>
+              <th style="width: 12%;" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in candidates %}
+            <tr class="candidate-row"
+                data-name="{{ c.teacher_name|lower }}"
+                data-cnic="{{ c.cnic|lower }}"
+                data-school="{{ c.school_name|lower }}"
+                data-seniority="{{ c.seniority_no or '' }}"
+                data-status="{{ c.overall_status|lower }}"
+                data-decision="{{ c.committee_decision|lower }}">
+              
+              <!-- Col 0: Sr. # -->
+              <td class="text-center fw-bold text-muted" style="font-size: 0.78rem;">
+                {{ loop.index }}
+              </td>
+
+              <!-- Col 1: Seniority Rank & Candidate Profile -->
+              <td>
+                <div class="d-flex flex-wrap align-items-center gap-1 mb-1">
+                  <span class="badge bg-punjab text-white fw-bold" style="font-size: 0.8rem;" title="Official Cadre Seniority Number">
+                    #{{ c.seniority_no or loop.index }}
+                  </span>
+                  <span class="badge bg-light text-muted border" style="font-size: 0.68rem;" title="Candidate Cadre Consideration Order">
+                    Rank {{ c.cadre_rank or loop.index }}
+                  </span>
+                  {% if c.is_seniority_tied %}
+                    <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.68rem;" title="{{ c.seniority_precedence_note }}">
+                      <i class="bi bi-person-exclamation me-1"></i>Tie (Age)
+                    </span>
+                  {% endif %}
+                </div>
+                <div class="fw-bold text-dark text-truncate" style="max-width: 230px;">
+                  <a href="{{ url_for('admin.teacher_detail', teacher_id=c.teacher_id) }}" class="text-decoration-none text-punjab" title="View 360 Dossier">
+                    {{ c.teacher_name }}
+                  </a>
+                </div>
+                <div class="small text-muted font-monospace" style="font-size: 0.72rem;">{{ c.cnic }}</div>
+                <div class="small text-secondary text-truncate" style="max-width: 230px; font-size: 0.72rem;" title="{{ c.school_name }}">
+                  <i class="bi bi-building me-1"></i>{{ c.school_name }}
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                  <span class="badge {{ c.panel_zone_class }}" style="font-size: 0.65rem;" title="{{ c.panel_zone_note }}">
+                    {{ c.panel_zone_badge }}
+                  </span>
+                  {% if c.date_of_birth %}
+                  <span class="text-muted" style="font-size: 0.68rem;">
+                    DOB: {{ c.date_of_birth.strftime('%d-%m-%Y') }}
+                  </span>
+                  {% endif %}
+                </div>
+                {% if c.is_promotion_disabled %}
+                  <div class="mt-2">
+                    <span class="badge bg-danger text-white py-1 px-2" style="font-size: 0.68rem;" title="{{ c.promotion_disable_remarks or '' }}">
+                      <i class="bi bi-slash-circle-fill me-1"></i>Promotion Disabled: {{ c.promotion_disable_reason or 'Excluded' }}
+                    </span>
+                    {% if c.promotion_disable_remarks %}
+                      <div class="small text-danger fw-semibold mt-1" style="font-size: 0.68rem;" title="{{ c.promotion_disable_remarks }}">
+                        <i class="bi bi-chat-square-text me-1"></i>Remarks: {{ c.promotion_disable_remarks }}
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </td>
+
+              <!-- Col 2: Feeder Service & Prescribed Qualifications -->
+              <td>
+                <div class="d-flex flex-wrap align-items-center gap-1 mb-1">
+                  <span class="badge bg-light text-dark border" style="font-size: 0.72rem;">
+                    <i class="bi bi-clock-history me-1 text-primary"></i><strong>{{ c.service_actual_years }}y</strong> regular
+                  </span>
+                  <span class="text-muted small" style="font-size: 0.68rem;">(Req: {{ c.service_required_years }}y)</span>
+                </div>
+                <div class="small fw-semibold text-dark text-truncate" style="max-width: 260px; font-size: 0.78rem;" title="{{ c.matched_academic_degree }}">
+                  <i class="bi bi-mortarboard-fill text-primary me-1"></i>{{ c.matched_academic_degree }}
+                </div>
+                <div class="mt-1">
+                  {% if 'Missing' in c.matched_professional_degree %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger">
+                      <i class="bi bi-x-circle me-1"></i>Missing B.Ed
+                    </span>
+                  {% elif 'Exempt' in c.matched_professional_degree %}
+                    <span class="badge bg-secondary-subtle text-secondary border">Exempt</span>
+                  {% else %}
+                    <span class="badge bg-success-subtle text-success border border-success">
+                      <i class="bi bi-patch-check-fill me-1"></i>{{ c.matched_professional_degree }}
+                    </span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- Col 3: Engine Scrutiny & Findings -->
+              <td>
+                <div class="mb-1">
+                  {% if c.overall_status == 'Eligible for Consideration' %}
+                    <span class="badge bg-success-subtle text-success border border-success">
+                      <i class="bi bi-check-circle-fill me-1"></i>Eligible
+                    </span>
+                  {% elif c.overall_status == 'Ineligible' %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger">
+                      <i class="bi bi-x-circle-fill me-1"></i>Ineligible
+                    </span>
+                  {% else %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning">
+                      <i class="bi bi-hourglass-split me-1"></i>Pending
+                    </span>
+                  {% endif %}
+                </div>
+                <div class="small text-secondary text-truncate" style="max-width: 230px; font-size: 0.74rem;" title="{{ c.decision_reason }}">
+                  {{ c.decision_reason }}
+                </div>
+                <div class="mt-1">
+                  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-primary" style="font-size: 0.72rem;"
+                          data-bs-toggle="modal"
+                          data-bs-target="#breakdownModal_{{ c.teacher_id }}">
+                    <i class="bi bi-list-check me-1"></i>Scrutiny Breakdown
+                  </button>
+                </div>
+              </td>
+
+              <!-- Col 4: Committee Decision -->
+              <td>
+                {% if c.committee_decision == 'Promoted' %}
+                  <span class="badge bg-success text-white py-1 px-2">
+                    <i class="bi bi-patch-check-fill me-1"></i>Promoted
+                  </span>
+                {% elif c.committee_decision == 'Rejected' %}
+                  <span class="badge bg-danger text-white py-1 px-2">
+                    <i class="bi bi-x-octagon-fill me-1"></i>Rejected
+                  </span>
+                {% elif c.committee_decision == 'Deferred' %}
+                  <span class="badge bg-warning text-dark py-1 px-2">
+                    <i class="bi bi-clock-history me-1"></i>Deferred
+                  </span>
+                {% else %}
+                  <span class="badge bg-light text-muted border py-1 px-2">
+                    Pending Review
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Col 5: Actions -->
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-primary"
+                          data-bs-toggle="modal"
+                          data-bs-target="#decisionModal"
+                          data-teacher-id="{{ c.teacher_id }}"
+                          data-teacher-name="{{ c.teacher_name }}"
+                          data-decision="{{ c.committee_decision }}"
+                          data-reason="{{ c.decision_reason }}"
+                          data-ref="{{ c.statutory_reference }}"
+                          data-status="{{ c.overall_status }}"
+                          data-academic="{{ c.matched_academic_degree }}"
+                          data-prof="{{ c.matched_professional_degree }}"
+                          data-service="{{ c.service_actual_years }}"
+                          data-req-service="{{ c.service_required_years }}"
+                          title="Review and record DPC promotion selection">
+                    <i class="bi bi-pencil-square me-1"></i>Review
+                  </button>
+                  <button type="button" 
+                          class="btn {% if c.is_promotion_disabled %}btn-danger text-white{% else %}btn-outline-danger{% endif %}"
+                          data-bs-toggle="modal" 
+                          data-bs-target="#promotionStatusModal"
+                          data-teacher-id="{{ c.teacher_id }}"
+                          data-teacher-name="{{ c.teacher_name }}"
+                          data-is-disabled="{{ 1 if c.is_promotion_disabled else 0 }}"
+                          data-reason="{{ c.promotion_disable_reason or '' }}"
+                          data-remarks="{{ c.promotion_disable_remarks or '' }}"
+                          title="{% if c.is_promotion_disabled %}Manage Promotion Status (Currently Disabled){% else %}Disable for Promotion{% endif %}">
+                    <i class="bi bi-slash-circle"></i>
+                  </button>
+                  <a href="{{ url_for('admin.teacher_detail', teacher_id=c.teacher_id) }}" class="btn btn-outline-secondary" title="View 360 Dossier">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-5">
+                <i class="bi bi-people text-muted fs-1 d-block mb-2"></i>
+                <div class="fw-semibold">No candidate teachers found</div>
+                <div class="small">No records match {{ selected_rule.target_designation }} in District {{ district }} for filter '{{ status_filter }}'.</div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Currently Promoted Teachers (Gazette Roll) -->
+    <div class="tab-pane fade {% if active_tab == 'promoted' %}show active{% endif %}" id="pane-promoted-teachers" role="tabpanel" aria-labelledby="promoted-tab">
+      <div class="card shadow-sm border-0 overflow-hidden">
+        <div class="card-header bg-white py-3 border-bottom">
+          <div class="row align-items-center g-2">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-bold fs-6 text-dark">
+                  <i class="bi bi-award-fill text-success me-1"></i> Currently Promoted Officers &bull; {{ selected_rule.target_designation }} (BS-{{ selected_rule.target_bs }})
+                </span>
+                <span class="badge bg-success-subtle text-success border border-success">
+                  Showing <span id="promotedVisibleCount">{{ promoted_records|length }}</span> Promoted Officers
+                </span>
+              </div>
+              <div class="small text-muted mt-1">
+                District {{ district }} &bull; Official Promotion Orders &amp; Cadre Seniority Allocation
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex justify-content-md-end gap-2">
+                <div class="input-group input-group-sm" style="max-width: 340px;">
+                  <span class="input-group-text bg-white border-end-0 text-muted">
+                    <i class="bi bi-search"></i>
+                  </span>
+                  <input type="text"
+                         id="promotedSearch"
+                         class="form-control border-start-0 shadow-none"
+                         placeholder="Search officer, CNIC, school, order #..."
+                         onkeyup="filterPromotedTable()">
+                </div>
+                <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-secondary shadow-sm" title="Print Promoted Gazette Roll">
+                  <i class="bi bi-printer me-1"></i> Print Roll
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-institutional table-full-fit mb-0 align-middle" id="promotedTeachersTable">
+              <thead class="bg-light">
+                <tr>
+                  <th style="width: 4%;" class="text-center">Sr. #</th>
+                  <th style="width: 24%;">Promoted Officer &amp; Identifiers</th>
+                  <th style="width: 22%;">Promoted Cadre &amp; Seniority (Max+1)</th>
+                  <th style="width: 19%;">Feeder Cadre &amp; Service</th>
+                  <th style="width: 20%;">Order &amp; Statutory Decision</th>
+                  <th style="width: 11%;" class="text-end">Dossier &amp; Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in promoted_records %}
+                <tr class="promoted-row"
+                    data-name="{{ p.teacher.name|lower }}"
+                    data-cnic="{{ p.teacher.cnic|lower }}"
+                    data-school="{{ (p.teacher.school_name or '')|lower }}"
+                    data-order="{{ (p.promotion_order_no or '')|lower }}"
+                    data-promoted-sen="{{ p.promoted_seniority_no or '' }}"
+                    data-feeder-sen="{{ p.feeder_seniority_no or '' }}">
+                  
+                  <!-- Col 0: Sr. # -->
+                  <td class="text-center fw-bold text-muted" style="font-size: 0.78rem;">
+                    {{ loop.index }}
+                  </td>
+
+                  <!-- Col 1: Promoted Officer & Identifiers -->
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="rounded-circle bg-success-subtle text-success p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; flex-shrink: 0;">
+                        <i class="bi bi-person-fill fs-5"></i>
+                      </div>
+                      <div class="text-truncate">
+                        <a href="{{ url_for('admin.teacher_detail', teacher_id=p.teacher.id) }}" class="fw-bold text-dark text-decoration-none hover-primary text-truncate d-block" title="View 360 Degree Dossier">
+                          {{ p.teacher.name }}
+                        </a>
+                        <div class="d-flex align-items-center gap-1 font-monospace text-muted small" style="font-size: 0.78rem;">
+                          <i class="bi bi-card-heading"></i> {{ p.teacher.cnic }}
+                          <span class="badge bg-light text-secondary border px-1" style="font-size: 0.68rem;">{{ p.teacher.gender or 'M' }}</span>
+                        </div>
+                        {% if p.teacher.personnel_no %}
+                          <div class="small text-muted font-monospace" style="font-size: 0.72rem;">P# {{ p.teacher.personnel_no }}</div>
+                        {% endif %}
+                        <div class="small text-truncate text-secondary" style="max-width: 240px;" title="{{ p.teacher.school_name or 'District Education Office' }}">
+                          <i class="bi bi-building me-1"></i>{{ p.teacher.school_name or 'District Education Office' }}
+                        </div>
+                        {% if p.teacher.is_promotion_disabled %}
+                          <div class="mt-1">
+                            <span class="badge bg-danger text-white px-2 py-1" style="font-size: 0.68rem;" title="{{ p.teacher.promotion_disable_remarks or '' }}">
+                              <i class="bi bi-slash-circle-fill me-1"></i>Disabled: {{ p.teacher.promotion_disable_reason or 'Excluded' }}
+                            </span>
+                            {% if p.teacher.promotion_disable_remarks %}
+                              <div class="small text-danger fw-semibold mt-1" style="font-size: 0.68rem;">
+                                Remarks: {{ p.teacher.promotion_disable_remarks }}
+                              </div>
+                            {% endif %}
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Col 2: Promoted Cadre & Assigned Seniority Rank (Max + 1) -->
+                  <td>
+                    <div class="mb-1">
+                      <span class="badge bg-success-subtle text-success border border-success fw-bold px-2 py-1">
+                        <i class="bi bi-award-fill me-1"></i>{{ p.target_designation }} (BS-{{ p.target_bs }})
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 mb-1">
+                      <span class="badge bg-punjab text-white fw-bold px-2 py-1" title="Promoted Seniority Rank in Target Cadre">
+                        <i class="bi bi-sort-numeric-down me-1"></i>Rank #{{ p.promoted_seniority_no or p.teacher.seniority_no }}
+                      </span>
+                    </div>
+                    <div class="text-muted" style="font-size: 0.72rem;">
+                      <i class="bi bi-check-all text-success me-1"></i>Assigned at cadre max + 1
+                    </div>
+                  </td>
+
+                  <!-- Col 3: Feeder Cadre Credentials & Service -->
+                  <td>
+                    <div class="mb-1">
+                      <span class="badge bg-secondary-subtle text-secondary border">
+                        <i class="bi bi-arrow-left-circle me-1"></i>Feeder: {{ p.feeder_designation }} (BS-{{ p.feeder_bs }})
+                      </span>
+                    </div>
+                    <div class="small text-dark mb-1">
+                      <i class="bi bi-hash text-muted"></i>Feeder Seniority:
+                      <span class="badge bg-light text-dark border fw-bold">#{{ p.feeder_seniority_no or 'N/A' }}</span>
+                    </div>
+                    <div class="small text-muted mb-1">
+                      <i class="bi bi-clock-history me-1"></i>Regular Service: <strong>{{ p.service_years }} Yrs</strong>
+                    </div>
+                    <div class="small text-secondary" style="font-size: 0.74rem;">
+                      <span class="badge bg-light text-dark border me-1" title="Academic Qualification">
+                        <i class="bi bi-mortarboard me-1"></i>{{ p.academic_degrees or 'Degree Verified' }}
+                      </span>
+                      <span class="badge bg-light text-dark border" title="Professional Qualification">
+                        <i class="bi bi-patch-check me-1"></i>{{ p.prof_degrees or 'B.Ed / Prescribed' }}
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- Col 4: Promotion Order & DPC Gazette Details -->
+                  <td>
+                    <div class="mb-1">
+                      <span class="badge bg-primary-subtle text-primary border border-primary font-monospace fw-bold">
+                        <i class="bi bi-file-earmark-check me-1"></i>{{ p.promotion_order_no }}
+                      </span>
+                    </div>
+                    <div class="small text-muted mb-1">
+                      <i class="bi bi-calendar-check me-1"></i>Order Date:
+                      <strong>{{ p.promotion_order_date.strftime('%d-%b-%Y') if p.promotion_order_date else 'N/A' }}</strong>
+                    </div>
+                    <div class="small text-dark p-2 rounded bg-light-subtle border mb-1" style="font-size: 0.75rem; line-height: 1.35;">
+                      {{ p.decision_reason }}
+                    </div>
+                    <div class="text-muted" style="font-size: 0.7rem;">
+                      <i class="bi bi-book me-1 text-punjab"></i>{{ p.statutory_reference }}
+                    </div>
+                  </td>
+
+                  <!-- Col 5: Actions -->
+                  <td class="text-end">
+                    <div class="d-flex flex-column gap-1">
+                      <a href="{{ url_for('admin.teacher_detail', teacher_id=p.teacher.id) }}"
+                         class="btn btn-outline-secondary btn-sm"
+                         title="View Complete 360 Degree Dossier">
+                        <i class="bi bi-eye me-1"></i>360 Dossier
+                      </a>
+                      <button type="button"
+                              class="btn btn-outline-primary btn-sm"
+                              data-bs-toggle="modal"
+                              data-bs-target="#decisionModal"
+                              data-teacher-id="{{ p.teacher.id }}"
+                              data-teacher-name="{{ p.teacher.name }}"
+                              data-decision="Promoted"
+                              data-reason="{{ p.decision_reason }}"
+                              data-ref="{{ p.statutory_reference }}"
+                              data-status="Eligible for Consideration"
+                              data-academic="{{ p.academic_degrees }}"
+                              data-prof="{{ p.prof_degrees }}"
+                              data-service="{{ p.service_years }}"
+                              data-req-service="0"
+                              title="Review or Modify DPC Promotion Record">
+                        <i class="bi bi-pencil-square me-1"></i>Edit Decision
+                      </button>
+                      <button type="button" 
+                              class="btn btn-sm {% if p.teacher.is_promotion_disabled %}btn-danger text-white{% else %}btn-outline-danger{% endif %}"
+                              data-bs-toggle="modal" 
+                              data-bs-target="#promotionStatusModal"
+                              data-teacher-id="{{ p.teacher.id }}"
+                              data-teacher-name="{{ p.teacher.name }}"
+                              data-is-disabled="{{ 1 if p.teacher.is_promotion_disabled else 0 }}"
+                              data-reason="{{ p.teacher.promotion_disable_reason or '' }}"
+                              data-remarks="{{ p.teacher.promotion_disable_remarks or '' }}"
+                              title="{% if p.teacher.is_promotion_disabled %}Manage Promotion Status (Currently Disabled){% else %}Disable for Promotion{% endif %}">
+                        <i class="bi bi-slash-circle me-1"></i>{% if p.teacher.is_promotion_disabled %}Disabled{% else %}Disable{% endif %}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="6" class="text-center text-muted py-5">
+                    <i class="bi bi-award text-muted fs-1 d-block mb-2"></i>
+                    <div class="fw-semibold text-dark">No Promoted Teachers Recorded Yet</div>
+                    <div class="small text-muted mt-1">
+                      No teachers have been promoted to <strong>{{ selected_rule.target_designation }} (BS-{{ selected_rule.target_bs }})</strong> in District {{ district }}.<br>
+                      Switch to the <strong>Candidate Assessment Roll</strong> tab, evaluate candidates, and click <strong>Review &rarr; Promote</strong>.
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Candidate Scrutiny Breakdown Modals -->
+{% for c in candidates %}
+<div class="modal fade" id="breakdownModal_{{ c.teacher_id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content shadow border-0">
+      <div class="modal-header bg-punjab text-white py-2 px-3">
+        <h6 class="modal-title fw-bold" style="font-size: 0.95rem;">
+          <i class="bi bi-shield-check me-2"></i>Statutory Scrutiny Breakdown &bull; {{ c.teacher_name }}
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center bg-light p-2 rounded mb-3">
+          <div>
+            <strong>{{ c.teacher_name }}</strong> &bull; CNIC: <code>{{ c.cnic }}</code>
+            <div class="small text-muted">{{ c.school_name }} &bull; District {{ c.district }}</div>
+          </div>
+          <div class="text-end">
+            <span class="badge bg-punjab text-white fs-6">Seniority #{{ c.seniority_no or '-' }}</span>
+            <div class="small text-muted">Overall: <b>{{ c.overall_status }}</b></div>
+          </div>
+        </div>
+
+        <h6 class="fw-bold small text-uppercase text-muted letter-spacing-1 mb-2">Condition-by-Condition Evaluation:</h6>
+        <div class="list-group list-group-flush border rounded mb-3">
+          {% for cond in c.conditions %}
+          <div class="list-group-item p-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong class="text-dark small">{{ cond.name }}</strong>
+                <div class="small text-muted">Req: {{ cond.required }} | Act: {{ cond.actual }}</div>
+              </div>
+              <div>
+                {% if cond.status == 'PASS' %}
+                  <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle me-1"></i>PASS</span>
+                {% elif cond.status == 'FAIL' %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger"><i class="bi bi-x-circle me-1"></i>FAIL</span>
+                {% elif cond.status == 'WARNING' %}
+                  <span class="badge bg-warning-subtle text-warning border border-warning"><i class="bi bi-exclamation-triangle me-1"></i>WARNING</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-hourglass-split me-1"></i>PENDING</span>
+                {% endif %}
+              </div>
+            </div>
+            {% if cond.remarks %}
+              <div class="small text-secondary mt-1 fst-italic" style="font-size: 0.76rem;">{{ cond.remarks }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="p-2 bg-light-subtle rounded border small">
+          <strong>Statutory Reference:</strong>
+          <span class="font-monospace text-muted">{{ c.statutory_reference }}</span>
+        </div>
+      </div>
+      <div class="modal-footer py-2 px-3">
+        <a href="{{ url_for('admin.teacher_detail', teacher_id=c.teacher_id) }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-eye me-1"></i>View Full 360 Dossier
+        </a>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- =========================================================================
+     MODAL: DPC Committee Decision & Seniority Appending
+     ========================================================================= -->
+<div class="modal fade" id="decisionModal" tabindex="-1" aria-labelledby="decisionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow">
+      <form method="POST" action="{{ url_for('admin.decide_promotion_candidate', rule_id=selected_rule.id) }}">
+        <input type="hidden" name="teacher_id" id="modal_teacher_id">
+        <input type="hidden" name="district" value="{{ district }}">
+        <input type="hidden" name="status_filter" value="{{ status_filter }}">
+
+        <div class="modal-header bg-punjab text-white">
+          <h6 class="modal-title fw-bold" id="decisionModalLabel">
+            <i class="bi bi-award-fill me-1"></i> DPC Consideration: <span id="modal_teacher_title"></span>
+          </h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body p-4">
+          <div class="alert alert-info py-2 small mb-3">
+            <strong>Target Cadre:</strong> {{ selected_rule.target_designation }} (BS-{{ selected_rule.target_bs }}) &bull;
+            <strong>Statutory Rule:</strong> {{ selected_rule.rule_name }}
+          </div>
+
+          <div class="alert alert-warning py-2 small mb-3 border-start border-4 border-warning">
+            <i class="bi bi-arrow-up-right-circle-fill text-warning me-1"></i>
+            <strong>Automatic Seniority Appending:</strong> Confirming promotion will automatically transition this teacher to <strong>{{ selected_rule.target_designation }} (BS-{{ selected_rule.target_bs }})</strong>, and append their new seniority rank to the end of the existing {{ district }} seniority roll (<code>max(seniority_no) + 1</code>).
+          </div>
+
+          <!-- Radio Option Cards -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label small fw-bold text-dark mb-0">Official Committee Action <span class="text-danger">*</span></label>
+              <span class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-magic me-1 text-punjab"></i>Clicking an action auto-updates statutory fields below</span>
+            </div>
+            <div class="row g-2">
+              <div class="col-sm-6 col-md-3">
+                <label id="lbl_act_promote" class="d-flex align-items-center p-2 border rounded cursor-pointer h-100 bg-white transition-all" for="act_promote">
+                  <input class="form-check-input me-2 action-radio" type="radio" name="action" id="act_promote" value="Promote" required>
+                  <div>
+                    <strong class="text-success d-block small">Promote</strong>
+                    <span class="text-muted" style="font-size: 0.72rem;">Add to Promoted Roll</span>
+                  </div>
+                </label>
+              </div>
+              <div class="col-sm-6 col-md-3">
+                <label id="lbl_act_reject" class="d-flex align-items-center p-2 border rounded cursor-pointer h-100 bg-white transition-all" for="act_reject">
+                  <input class="form-check-input me-2 action-radio" type="radio" name="action" id="act_reject" value="Reject" required>
+                  <div>
+                    <strong class="text-danger d-block small">Reject</strong>
+                    <span class="text-muted" style="font-size: 0.72rem;">Disqualify from Roll</span>
+                  </div>
+                </label>
+              </div>
+              <div class="col-sm-6 col-md-3">
+                <label id="lbl_act_defer" class="d-flex align-items-center p-2 border rounded cursor-pointer h-100 bg-white transition-all" for="act_defer">
+                  <input class="form-check-input me-2 action-radio" type="radio" name="action" id="act_defer" value="Defer" required>
+                  <div>
+                    <strong class="text-warning d-block small">Defer</strong>
+                    <span class="text-muted" style="font-size: 0.72rem;">Postpone Consideration</span>
+                  </div>
+                </label>
+              </div>
+              <div class="col-sm-6 col-md-3">
+                <label id="lbl_act_reset" class="d-flex align-items-center p-2 border rounded cursor-pointer h-100 bg-white transition-all" for="act_reset">
+                  <input class="form-check-input me-2 action-radio" type="radio" name="action" id="act_reset" value="Reset" required>
+                  <div>
+                    <strong class="text-secondary d-block small">Reset</strong>
+                    <span class="text-muted" style="font-size: 0.72rem;">Set to Pending</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Decision Reason -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label small fw-bold text-dark mb-0">Official Decision Reason / Statutory Findings <span class="text-danger">*</span></label>
+              <span id="reason_auto_badge" class="badge bg-light text-muted border" style="font-size: 0.68rem;">Pre-filled &bull; Editable</span>
+            </div>
+            <textarea name="decision_reason" id="modal_decision_reason" class="form-control" rows="3" required placeholder="Specify detailed reason for promotion selection or grounds for rejection..."></textarea>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <small class="text-muted">Pre-filled with statutory eligibility findings. Can be expanded by the Committee.</small>
+              <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-muted" id="btn_regenerate_reason" style="font-size: 0.72rem;" title="Reset back to standard statutory text for chosen action">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Re-apply Template
+              </button>
+            </div>
+          </div>
+
+          <!-- Statutory Reference -->
+          <div class="mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label small fw-bold text-dark mb-0">Statutory Rule Reference <span class="text-danger">*</span></label>
+              <span id="ref_auto_badge" class="badge bg-light text-muted border" style="font-size: 0.68rem;">Pre-filled &bull; Editable</span>
+            </div>
+            <input type="text" name="statutory_reference" id="modal_statutory_ref" class="form-control" required placeholder="Official notification and schedule reference">
+            <small class="text-muted">Reference to Punjab School Education Department Service Rules 2014 &amp; relevant schedules.</small>
+          </div>
+        </div>
+
+        <div class="modal-footer bg-light py-2">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-punjab px-3">Confirm &amp; Record Decision</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Disable / Manage Promotion Status -->
+<div class="modal fade" id="promotionStatusModal" tabindex="-1" aria-labelledby="promotionStatusModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow border-0">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fs-6 fw-bold" id="promotionStatusModalLabel">
+          <i class="bi bi-slash-circle me-2"></i>Promotion Consideration Status
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="promotionStatusForm" method="POST" action="">
+        <input type="hidden" name="redirect_url" value="{{ request.url }}">
+        <input type="hidden" name="action" id="promoActionInput" value="disable">
+
+        <div class="modal-body p-4">
+          <div class="alert alert-light border d-flex align-items-center gap-2 mb-3 py-2 rounded-2">
+            <i class="bi bi-person-badge-fill text-danger fs-4"></i>
+            <div>
+              <span class="text-muted small d-block">Teacher / Officer:</span>
+              <strong id="modalTeacherName" class="text-dark">---</strong>
+            </div>
+          </div>
+
+          <!-- If currently disabled, show active status banner with Re-enable option -->
+          <div id="currentlyDisabledNotice" class="alert alert-warning border-start border-3 border-danger py-2 mb-3 rounded-2" style="display: none;">
+            <div class="fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> Currently Disabled for Promotion</div>
+            <div class="small text-dark mt-1">Ground: <strong id="currentReasonText"></strong></div>
+            <div class="small text-muted mt-1" id="currentRemarksText"></div>
+            <div class="mt-2 pt-2 border-top">
+              <button type="button" class="btn btn-sm btn-outline-success w-100 fw-semibold" onclick="submitPromotionEnable()">
+                <i class="bi bi-check-circle-fill me-1"></i> Re-Enable Teacher for Promotion Consideration
+              </button>
+            </div>
+          </div>
+
+          <div id="disableFormSection">
+            <div class="mb-3">
+              <label for="predefinedReasonSelect" class="form-label small fw-bold text-dark">
+                <i class="bi bi-list-check text-danger me-1"></i> Ground / Reason for Promotion Disablement <span class="text-danger">*</span>
+              </label>
+              <select name="predefined_reason" id="predefinedReasonSelect" class="form-select form-select-sm" required>
+                <option value="Superannuation / Retired">Superannuation / Retired</option>
+                <option value="Deceased / Death">Deceased / Death</option>
+                <option value="Compulsory Retirement">Compulsory Retirement</option>
+                <option value="Removal / Dismissal from Service">Removal / Dismissal from Service</option>
+                <option value="Resigned">Resigned</option>
+                <option value="Under PEEDA Inquiry / Disciplinary Action">Under PEEDA Inquiry / Disciplinary Action</option>
+                <option value="Deputation / Ex-Pakistan Leave">Deputation / Ex-Pakistan Leave</option>
+                <option value="Medical Invalidation">Medical Invalidation</option>
+                <option value="Other / Custom Grounds">Other / Custom Grounds</option>
+              </select>
+              <div class="form-text small text-muted">
+                Predefined grounds under Punjab Civil Servants (Appointment &amp; Conditions of Service) Rules.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="customRemarksInput" class="form-label small fw-bold text-dark">
+                <i class="bi bi-chat-left-text text-danger me-1"></i> Official Remarks &amp; Order Reference <span class="text-danger">*</span>
+              </label>
+              <textarea name="custom_remarks" id="customRemarksInput" rows="3" class="form-control form-control-sm" placeholder="e.g., Retired on superannuation vide Order No. SED-Admin-984 dated 15-08-2025; or Notification No..."></textarea>
+              <div class="form-text small text-muted">
+                These remarks will be displayed on Admin Teacher List, Promotion Roster, and Teacher's Portal Login.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light py-2">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" id="savePromoStatusBtn" class="btn btn-danger btn-sm">
+            <i class="bi bi-slash-circle me-1"></i> Save Disablement Order
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Statutory Context from Active Rule
+  const ruleContext = {
+    targetDesig: "{{ selected_rule.target_designation }}",
+    targetBS: "{{ selected_rule.target_bs }}",
+    sourceDesig: "{{ selected_rule.source_designation }}",
+    sourceBS: "{{ selected_rule.source_bs }}",
+    ruleName: "{{ selected_rule.rule_name }}",
+    sourceTitle: "{{ selected_rule.source.title if selected_rule.source else 'SED Service Rules 2014' }}",
+    notificationNo: "{{ selected_rule.source.notification_no if selected_rule.source else 'SOR-III(S&GAD)1-19/2004(P)' }}",
+    notificationDate: "{{ selected_rule.source.notification_date.strftime('%d-%m-%Y') if (selected_rule.source and selected_rule.source.notification_date) else '14-03-2014' }}"
+  };
+
+  // Active Teacher Context within Modal
+  let activeTeacher = {
+    id: null,
+    name: '',
+    decision: '',
+    reason: '',
+    ref: '',
+    status: '',
+    academic: '',
+    prof: '',
+    service: '',
+    reqService: ''
+  };
+
+  // Generate statutory text based on committee action selection
+  function generateStatutoryText(action) {
+    const isExemptProf = !activeTeacher.prof || activeTeacher.prof.toLowerCase().includes('exempt') || activeTeacher.prof.toLowerCase().includes('none');
+    const profDegreeText = isExemptProf ? 'exempt from professional teaching degree' : `verified professional qualification (${activeTeacher.prof})`;
+    const academicText = activeTeacher.academic ? `prescribed academic qualification (${activeTeacher.academic})` : 'prescribed academic degree';
+    
+    let reqSvcNum = parseFloat(activeTeacher.reqService) || 0;
+    let serviceText = '';
+    if (reqSvcNum > 0) {
+      serviceText = `completed ${activeTeacher.service || '0'} years regular service (min ${reqSvcNum}y required)`;
+    } else {
+      serviceText = `${activeTeacher.service || '0'} years regular service (No minimum service length prescribed under Rules 2014; Seniority-cum-Fitness)`;
+    }
+
+    if (action === 'Promote') {
+      const reason = `Recommended and approved by DPC for promotion from ${ruleContext.sourceDesig} (BS-${ruleContext.sourceBS}) to ${ruleContext.targetDesig} (BS-${ruleContext.targetBS}) on Seniority-cum-Fitness basis. Scrutiny confirms candidate meets all statutory criteria under Service Rules 2014: holds ${academicText}, ${profDegreeText}, ${serviceText}, with satisfactory ACR record and unblemished service history (no PEEDA inquiries pending).`;
+      
+      const ref = `${ruleContext.sourceTitle}, Notification No. ${ruleContext.notificationNo} dated ${ruleContext.notificationDate}, Schedule II for post of ${ruleContext.targetDesig} (BS-${ruleContext.targetBS}) (50% Promotion Quota, Seniority-cum-Fitness).`;
+      
+      return {
+        reason: reason,
+        ref: ref,
+        badgeText: 'Auto-filled for Promotion (Editable)',
+        badgeClass: 'badge bg-success-subtle text-success border border-success'
+      };
+    } 
+    else if (action === 'Reject') {
+      let groundText = '';
+      if (activeTeacher.status === 'Ineligible' && activeTeacher.reason) {
+        groundText = activeTeacher.reason.replace(/^Ineligible:\s*/i, '');
+      } else {
+        groundText = 'Fails to satisfy statutory fitness benchmark, qualification schedule, or seniority criteria';
+      }
+
+      const reason = `Disqualified and not recommended by DPC for promotion to ${ruleContext.targetDesig} (BS-${ruleContext.targetBS}). Statutory grounds for rejection: ${groundText}. Candidate does not satisfy the statutory requirements prescribed under the Punjab School Education Department Service Rules 2014.`;
+
+      const ref = `${ruleContext.sourceTitle}, Schedule II (Prescribed Qualifications & Conditions for ${ruleContext.targetDesig}) & Punjab Civil Servants (Appointment & Conditions of Service) Rules 1974.`;
+
+      return {
+        reason: reason,
+        ref: ref,
+        badgeText: 'Auto-filled for Rejection (Editable)',
+        badgeClass: 'badge bg-danger-subtle text-danger border border-danger'
+      };
+    }
+    else if (action === 'Defer') {
+      const reason = `Consideration deferred by the District Promotion Committee (DPC) for promotion to ${ruleContext.targetDesig} (BS-${ruleContext.targetBS}) pending completion/receipt of required statutory documentation (verification of degree from HEC/IBCC, updated performance appraisal/ACR dossier, or official PEEDA clearance certificate). Candidate's seniority position in feeder cadre remains intact and protected.`;
+
+      const ref = `Punjab Civil Servants Act 1974 & SED Promotion Policy / DPC Deferment Clause (Protection of Seniority Pending Verification).`;
+
+      return {
+        reason: reason,
+        ref: ref,
+        badgeText: 'Auto-filled for Deferral (Editable)',
+        badgeClass: 'badge bg-warning-subtle text-warning border border-warning'
+      };
+    }
+    else { // Reset
+      const reason = activeTeacher.reason || `Pending DPC Scrutiny & Committee Assessment for ${ruleContext.targetDesig} (BS-${ruleContext.targetBS}) under SED Service Rules 2014.`;
+      const ref = activeTeacher.ref || `${ruleContext.sourceTitle}, Notification No. ${ruleContext.notificationNo} dated ${ruleContext.notificationDate}, Schedule II.`;
+
+      return {
+        reason: reason,
+        ref: ref,
+        badgeText: 'Reset to Engine Findings (Editable)',
+        badgeClass: 'badge bg-secondary-subtle text-secondary border'
+      };
+    }
+  }
+
+  // Update card visuals when radio changes
+  function updateRadioCardStyles(selectedAction) {
+    const cardMap = {
+      'Promote': { id: 'lbl_act_promote', activeClass: 'border-success bg-success-subtle shadow-sm' },
+      'Reject': { id: 'lbl_act_reject', activeClass: 'border-danger bg-danger-subtle shadow-sm' },
+      'Defer': { id: 'lbl_act_defer', activeClass: 'border-warning bg-warning-subtle shadow-sm' },
+      'Reset': { id: 'lbl_act_reset', activeClass: 'border-secondary bg-light shadow-sm' }
+    };
+
+    Object.keys(cardMap).forEach(key => {
+      const labelEl = document.getElementById(cardMap[key].id);
+      if (labelEl) {
+        labelEl.className = 'd-flex align-items-center p-2 border rounded cursor-pointer h-100 bg-white transition-all';
+      }
+    });
+
+    if (cardMap[selectedAction]) {
+      const activeLabel = document.getElementById(cardMap[selectedAction].id);
+      if (activeLabel) {
+        activeLabel.className = `d-flex align-items-center p-2 border rounded cursor-pointer h-100 transition-all ${cardMap[selectedAction].activeClass}`;
+      }
+    }
+  }
+
+  // Apply action text into textarea and input
+  function applyActionToForm(action, forceNewTemplate = false) {
+    updateRadioCardStyles(action);
+    const statutory = generateStatutoryText(action);
+
+    const reasonEl = document.getElementById('modal_decision_reason');
+    const refEl = document.getElementById('modal_statutory_ref');
+    const reasonBadge = document.getElementById('reason_auto_badge');
+    const refBadge = document.getElementById('ref_auto_badge');
+
+    if (reasonEl) {
+      reasonEl.value = statutory.reason;
+    }
+    if (refEl) {
+      refEl.value = statutory.ref;
+    }
+    if (reasonBadge) {
+      reasonBadge.textContent = statutory.badgeText;
+      reasonBadge.className = statutory.badgeClass;
+    }
+    if (refBadge) {
+      refBadge.textContent = statutory.badgeText;
+      refBadge.className = statutory.badgeClass;
+    }
+  }
+
+  // Modal Handler
+  const decisionModal = document.getElementById('decisionModal');
+  if (decisionModal) {
+    decisionModal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      activeTeacher.id = button.getAttribute('data-teacher-id');
+      activeTeacher.name = button.getAttribute('data-teacher-name');
+      activeTeacher.decision = button.getAttribute('data-decision');
+      activeTeacher.reason = button.getAttribute('data-reason') || '';
+      activeTeacher.ref = button.getAttribute('data-ref') || '';
+      activeTeacher.status = button.getAttribute('data-status') || '';
+      activeTeacher.academic = button.getAttribute('data-academic') || '';
+      activeTeacher.prof = button.getAttribute('data-prof') || '';
+      activeTeacher.service = button.getAttribute('data-service') || '0';
+      activeTeacher.reqService = button.getAttribute('data-req-service') || '0';
+
+      document.getElementById('modal_teacher_id').value = activeTeacher.id;
+      document.getElementById('modal_teacher_title').textContent = activeTeacher.name;
+
+      // Select existing decision radio
+      let initialAction = 'Reset';
+      if (activeTeacher.decision === 'Promoted') {
+        document.getElementById('act_promote').checked = true;
+        initialAction = 'Promote';
+      } else if (activeTeacher.decision === 'Rejected') {
+        document.getElementById('act_reject').checked = true;
+        initialAction = 'Reject';
+      } else if (activeTeacher.decision === 'Deferred') {
+        document.getElementById('act_defer').checked = true;
+        initialAction = 'Defer';
+      } else {
+        document.getElementById('act_reset').checked = true;
+        initialAction = 'Reset';
+      }
+
+      updateRadioCardStyles(initialAction);
+
+      // Populate text fields: if teacher already has custom reason/ref, use them, otherwise auto-fill
+      const reasonEl = document.getElementById('modal_decision_reason');
+      const refEl = document.getElementById('modal_statutory_ref');
+      const reasonBadge = document.getElementById('reason_auto_badge');
+      const refBadge = document.getElementById('ref_auto_badge');
+
+      reasonEl.value = activeTeacher.reason;
+      refEl.value = activeTeacher.ref;
+
+      if (reasonBadge) {
+        reasonBadge.textContent = 'Pre-filled with Findings (Editable)';
+        reasonBadge.className = 'badge bg-light text-muted border';
+      }
+      if (refBadge) {
+        refBadge.textContent = 'Pre-filled with Statutory Ref (Editable)';
+        refBadge.className = 'badge bg-light text-muted border';
+      }
+    });
+
+    // Listen to changes on the 4 action radios
+    const actionRadios = decisionModal.querySelectorAll('input[name="action"]');
+    actionRadios.forEach(radio => {
+      radio.addEventListener('change', function () {
+        applyActionToForm(this.value, true);
+      });
+      // Also trigger on direct click on label/radio to ensure instant response
+      radio.parentElement.addEventListener('click', function () {
+        if (!radio.checked) {
+          radio.checked = true;
+          applyActionToForm(radio.value, true);
+        }
+      });
+    });
+
+    // Manual edit feedback: inform user their custom text is preserved
+    const reasonTextarea = document.getElementById('modal_decision_reason');
+    if (reasonTextarea) {
+      reasonTextarea.addEventListener('input', function() {
+        const badge = document.getElementById('reason_auto_badge');
+        if (badge) {
+          badge.textContent = 'Modified by Committee';
+          badge.className = 'badge bg-primary-subtle text-primary border border-primary';
+        }
+      });
+    }
+
+    const refInput = document.getElementById('modal_statutory_ref');
+    if (refInput) {
+      refInput.addEventListener('input', function() {
+        const badge = document.getElementById('ref_auto_badge');
+        if (badge) {
+          badge.textContent = 'Modified by Committee';
+          badge.className = 'badge bg-primary-subtle text-primary border border-primary';
+        }
+      });
+    }
+
+    // Re-apply button handler
+    const btnRegenerate = document.getElementById('btn_regenerate_reason');
+    if (btnRegenerate) {
+      btnRegenerate.addEventListener('click', function() {
+        const checkedRadio = decisionModal.querySelector('input[name="action"]:checked');
+        const currentAction = checkedRadio ? checkedRadio.value : 'Reset';
+        applyActionToForm(currentAction, true);
+      });
+    }
+  }
+
+  // Cadre Pills Click Handler
+  const pills = document.querySelectorAll('.cadre-filter-pill');
+  const targetSelect = document.getElementById('targetRuleSelect');
+  const promoForm = document.getElementById('promoFilterForm');
+
+  pills.forEach(pill => {
+    pill.addEventListener('click', function() {
+      const cadre = this.getAttribute('data-cadre-filter');
+      const firstRuleId = this.getAttribute('data-first-rule-id');
+
+      // If user clicks a specific cadre pill and it has a first rule id, switch directly
+      if (firstRuleId && targetSelect.value != firstRuleId) {
+        targetSelect.value = firstRuleId;
+        promoForm.submit();
+        return;
+      }
+
+      // Highlight active pill
+      pills.forEach(p => {
+        p.classList.remove('btn-punjab', 'text-white', 'shadow-sm');
+        p.classList.add('btn-outline-secondary', 'bg-white');
+      });
+      this.classList.remove('btn-outline-secondary', 'bg-white');
+      this.classList.add('btn-punjab', 'text-white', 'shadow-sm');
+
+      // Filter options in the dropdown
+      const optgroups = targetSelect.querySelectorAll('optgroup');
+      let visibleRules = 0;
+
+      optgroups.forEach(og => {
+        const ogCadre = og.getAttribute('data-cadre-group');
+        if (cadre === 'ALL' || ogCadre === cadre) {
+          og.style.display = '';
+          const options = og.querySelectorAll('option');
+          visibleRules += options.length;
+        } else {
+          og.style.display = 'none';
+        }
+      });
+
+      const countBadge = document.getElementById('ruleCountBadge');
+      if (countBadge) {
+        countBadge.textContent = `${visibleRules} Filtered Rules`;
+      }
+    });
+  });
+});
+
+// Real-time Instant Search in Candidate Roll Table
+function filterRollTable() {
+  const input = document.getElementById('rollSearch');
+  const filter = input.value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#candidatesRollTable tbody tr.candidate-row');
+  let visibleCount = 0;
+
+  rows.forEach(row => {
+    const name = row.getAttribute('data-name') || '';
+    const cnic = row.getAttribute('data-cnic') || '';
+    const school = row.getAttribute('data-school') || '';
+    const seniority = row.getAttribute('data-seniority') || '';
+    const status = row.getAttribute('data-status') || '';
+    const decision = row.getAttribute('data-decision') || '';
+
+    if (!filter ||
+        name.includes(filter) ||
+        cnic.includes(filter) ||
+        school.includes(filter) ||
+        seniority.includes(filter) ||
+        status.includes(filter) ||
+        decision.includes(filter)) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+
+  const counter = document.getElementById('visibleCount');
+  if (counter) {
+    counter.textContent = visibleCount;
+  }
+}
+
+// Real-time Instant Search in Promoted Teachers Table
+function filterPromotedTable() {
+  const input = document.getElementById('promotedSearch');
+  if (!input) return;
+  const filter = input.value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#promotedTeachersTable tbody tr.promoted-row');
+  let visibleCount = 0;
+
+  rows.forEach(row => {
+    const name = row.getAttribute('data-name') || '';
+    const cnic = row.getAttribute('data-cnic') || '';
+    const school = row.getAttribute('data-school') || '';
+    const order = row.getAttribute('data-order') || '';
+    const promotedSen = row.getAttribute('data-promoted-sen') || '';
+    const feederSen = row.getAttribute('data-feeder-sen') || '';
+
+    if (!filter ||
+        name.includes(filter) ||
+        cnic.includes(filter) ||
+        school.includes(filter) ||
+        order.includes(filter) ||
+        promotedSen.includes(filter) ||
+        feederSen.includes(filter)) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+
+  const counter = document.getElementById('promotedVisibleCount');
+  if (counter) {
+    counter.textContent = visibleCount;
+  }
+}
+
+// Synchronize active tab in browser URL search query without reloading
+document.addEventListener('DOMContentLoaded', function() {
+  const promoTabs = document.querySelectorAll('#promotionTabs button[data-bs-toggle="tab"]');
+  promoTabs.forEach(tab => {
+    tab.addEventListener('shown.bs.tab', function(e) {
+      const targetId = e.target.getAttribute('data-bs-target');
+      const tabName = targetId === '#pane-promoted-teachers' ? 'promoted' : 'assessment';
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tabName);
+      window.history.replaceState({}, '', url.toString());
+    });
+  });
+
+  // Modal handling for promotion status
+  const promoModal = document.getElementById('promotionStatusModal');
+  if (promoModal) {
+    promoModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      if (!button) return;
+      const teacherId = button.getAttribute('data-teacher-id');
+      const teacherName = button.getAttribute('data-teacher-name');
+      const isDisabled = button.getAttribute('data-is-disabled') === '1';
+      const reason = button.getAttribute('data-reason') || 'Superannuation / Retired';
+      const remarks = button.getAttribute('data-remarks') || '';
+
+      const form = document.getElementById('promotionStatusForm');
+      form.action = `/admin/teachers/${teacherId}/toggle-promotion-status`;
+      document.getElementById('modalTeacherName').textContent = teacherName;
+      document.getElementById('promoActionInput').value = 'disable';
+
+      const disabledNotice = document.getElementById('currentlyDisabledNotice');
+      const saveBtn = document.getElementById('savePromoStatusBtn');
+
+      if (isDisabled) {
+        disabledNotice.style.display = 'block';
+        document.getElementById('currentReasonText').textContent = reason;
+        document.getElementById('currentRemarksText').textContent = remarks ? `Remarks: ${remarks}` : '';
+        saveBtn.innerHTML = '<i class="bi bi-pencil-square me-1"></i> Update Disablement Reason/Remarks';
+        saveBtn.className = 'btn btn-warning btn-sm';
+      } else {
+        disabledNotice.style.display = 'none';
+        saveBtn.innerHTML = '<i class="bi bi-slash-circle me-1"></i> Confirm Disablement';
+        saveBtn.className = 'btn btn-danger btn-sm';
+      }
+
+      const select = document.getElementById('predefinedReasonSelect');
+      if (select) {
+        select.value = reason;
+      }
+      const remarksInput = document.getElementById('customRemarksInput');
+      if (remarksInput) {
+        remarksInput.value = remarks;
+      }
+    });
+  }
+});
+
+function submitPromotionEnable() {
+  const form = document.getElementById('promotionStatusForm');
+  document.getElementById('promoActionInput').value = 'enable';
+  form.submit();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,658 @@
+{% extends 'base.html' %}
+{% block title %}Teaching Posts Directory - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <h1 class="page-title"><i class="bi bi-briefcase text-success me-2"></i> Official Teaching Posts &amp; Designations Directory</h1>
+        <p class="page-subtitle">Standardized Punjab School Education Department teaching designations (BS-12 to BS-20) from Service Rules 2014 &amp; Recruitment Policy. All posts are editable.</p>
+      </div>
+      <div>
+        <button class="btn btn-punjab btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#newPostModal">
+          <i class="bi bi-plus-circle me-1"></i> Add Custom Teaching Post
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+        <div class="card-body py-3">
+          <div class="text-muted small fw-bold">TOTAL POSTS</div>
+          <div class="fs-4 fw-bold text-dark">{{ total_posts }}</div>
+          <div class="small text-muted">Official &amp; Custom</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+        <div class="card-body py-3">
+          <div class="text-muted small fw-bold">ACTIVE POSTS</div>
+          <div class="fs-4 fw-bold text-success">{{ active_posts }}</div>
+          <div class="small text-muted">Available across system</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100 border-start border-4 border-info">
+        <div class="card-body py-3">
+          <div class="text-muted small fw-bold">SED CADRES</div>
+          <div class="fs-4 fw-bold text-info">{{ all_cadres|length }}</div>
+          <div class="small text-muted">Primary to Executive</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
+        <div class="card-body py-3">
+          <div class="text-muted small fw-bold">CUSTOM ADDITIONS</div>
+          <div class="fs-4 fw-bold text-warning">{{ custom_posts }}</div>
+          <div class="small text-muted">Admin added designations</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Card -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body py-3">
+      <form method="GET" action="{{ url_for('admin.teaching_posts') }}" class="row g-2 align-items-center">
+        <div class="col-md-3">
+          <label class="form-label small text-muted mb-1">Cadre</label>
+          <select name="cadre" class="form-select form-select-sm">
+            <option value="">-- All Cadres --</option>
+            {% for c in all_cadres %}
+              <option value="{{ c }}" {% if selected_cadre == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small text-muted mb-1">Basic Scale</label>
+          <select name="bs" class="form-select form-select-sm">
+            <option value="">-- All Scales --</option>
+            {% for scale in [12, 14, 15, 16, 17, 18, 19, 20] %}
+              <option value="{{ scale }}" {% if selected_bs == scale %}selected{% endif %}>BS-{{ scale }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small text-muted mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm">
+            <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Statuses</option>
+            <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active Only</option>
+            <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive Only</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted mb-1">Search Designation</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search title or category...">
+          </div>
+        </div>
+        <div class="col-md-2 d-flex gap-1 align-items-end" style="height: 100%;">
+          <button type="submit" class="btn btn-punjab btn-sm w-50" style="margin-top: 23px;">Filter</button>
+          <a href="{{ url_for('admin.teaching_posts') }}" class="btn btn-outline-secondary btn-sm w-50" style="margin-top: 23px;">Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Posts Table Card -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center py-3">
+      <span><i class="bi bi-list-columns text-primary me-2"></i> Teaching Posts List (Showing {{ posts|length }} posts)</span>
+      <span class="badge bg-light text-dark border">Rule Document: SED Service Rules 2014</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit align-middle mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th style="width: 26%;">Post Designation &amp; Scale</th>
+              <th style="width: 18%;">Cadre &amp; Category</th>
+              <th style="width: 20%;">Feeder Post &amp; Service</th>
+              <th style="width: 24%;">Prescribed Qualification</th>
+              <th style="width: 12%;" class="text-end">Status &amp; Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for post in posts %}
+            <tr class="{% if not post.is_active %}table-light text-muted opacity-75{% endif %}">
+              <!-- Col 1: Post Designation & Scale -->
+              <td>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="badge bg-punjab text-white fw-bold px-2 py-1">BS-{{ post.basic_scale }}</span>
+                  <span class="small text-muted font-monospace"><i class="bi bi-tag me-1"></i>{{ post.post_code }}</span>
+                </div>
+                <div class="fw-bold text-dark text-truncate" style="max-width: 250px;">{{ post.post_title }}</div>
+              </td>
+
+              <!-- Col 2: Cadre & Category -->
+              <td>
+                <div class="mb-1">
+                  <span class="badge bg-light text-dark border">{{ post.cadre }}</span>
+                </div>
+                <span class="badge bg-info-subtle text-info-emphasis border border-info">{{ post.category }}</span>
+                {% if post.gender and post.gender != 'Both' %}
+                  <span class="badge bg-secondary-subtle text-secondary border ms-1">{{ post.gender }}</span>
+                {% endif %}
+              </td>
+
+              <!-- Col 3: Feeder Post & Service -->
+              <td>
+                {% if post.feeder_post_title %}
+                  <div class="small fw-semibold text-secondary text-truncate" style="max-width: 200px;" title="{{ post.feeder_post_title }}">
+                    <i class="bi bi-arrow-right-short text-punjab"></i>{{ post.feeder_post_title }}
+                  </div>
+                  <div class="small text-muted" style="font-size: 0.72rem;">{{ post.min_service_years }}y regular service</div>
+                {% else %}
+                  <span class="badge bg-light text-muted border small">Initial Recruitment</span>
+                {% endif %}
+              </td>
+
+              <!-- Col 4: Prescribed Qualification -->
+              <td>
+                <div class="small text-secondary text-truncate" style="max-width: 240px; font-size: 0.76rem;" title="{{ post.prescribed_qualification or 'N/A' }}">
+                  {{ post.prescribed_qualification or 'N/A' }}
+                </div>
+              </td>
+
+              <!-- Col 5: Status & Actions -->
+              <td class="text-end">
+                <div class="d-flex align-items-center justify-content-end gap-1 mb-1">
+                  {% if post.is_active %}
+                    <span class="badge bg-success-subtle text-success border border-success">Active</span>
+                  {% else %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger">Inactive</span>
+                  {% endif %}
+                  {% if post.is_custom %}
+                    <span class="badge bg-warning-subtle text-dark border border-warning" title="Custom Post">Custom</span>
+                  {% endif %}
+                </div>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-primary btn-edit-post" 
+                          data-bs-toggle="modal" data-bs-target="#editPostModal"
+                          data-id="{{ post.id }}"
+                          data-code="{{ post.post_code }}"
+                          data-title="{{ post.post_title }}"
+                          data-cadre="{{ post.cadre }}"
+                          data-scale="{{ post.basic_scale }}"
+                          data-category="{{ post.category }}"
+                          data-gender="{{ post.gender }}"
+                          data-feeder="{{ post.feeder_post_title or '' }}"
+                          data-service="{{ post.min_service_years }}"
+                          data-qualification="{{ post.prescribed_qualification or '' }}"
+                          data-active="{{ 1 if post.is_active else 0 }}"
+                          title="Edit Post Details">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                  <form method="POST" action="{{ url_for('admin.toggle_teaching_post', post_id=post.id) }}" class="d-inline" onsubmit="return confirm('Toggle status for {{ post.post_title }}?');">
+                    <button type="submit" class="btn btn-outline-{% if post.is_active %}warning{% else %}success{% endif %}" title="{% if post.is_active %}Deactivate Post{% else %}Activate Post{% endif %}">
+                      <i class="bi bi-{% if post.is_active %}toggle-on{% else %}toggle-off{% endif %}"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
+                No teaching posts matched your selected filter criteria.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     MODAL: Add New Teaching Post (Predefined + Custom Options)
+     ========================================================================= -->
+<div class="modal fade" id="newPostModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 shadow">
+      <form method="POST" action="{{ url_for('admin.teaching_posts') }}">
+        <div class="modal-header bg-punjab text-white">
+          <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i> Add Teaching Post / Designation</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3">
+            
+            <!-- Quick Predefined Title Selector & Auto-fill -->
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label fw-bold mb-0">Official Post Title <span class="text-danger">*</span></label>
+                <span class="badge bg-light text-dark border"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Predefined Catalog or Custom</span>
+              </div>
+              <select class="form-select form-select-sm mb-2 text-primary fw-semibold" id="new_title_preset_select" onchange="handleTitlePresetSelect(this, 'new')">
+                <option value="">-- ⚡ Quick Select Predefined Post Title (Auto-fills parameters) --</option>
+                {% for cadre_name, p_group in predefined_catalog|groupby('cadre') %}
+                  <optgroup label="{{ cadre_name }}">
+                    {% for p in p_group %}
+                      <option value="{{ p.title }}" 
+                              data-code="{{ p.code }}" 
+                              data-scale="{{ p.scale }}" 
+                              data-cadre="{{ p.cadre }}" 
+                              data-category="{{ p.category }}" 
+                              data-gender="{{ p.gender }}" 
+                              data-feeder="{{ p.feeder }}" 
+                              data-service="{{ p.service }}" 
+                              data-qualification="{{ p.qualification }}">{{ p.title }} (BS-{{ p.scale }})</option>
+                    {% endfor %}
+                  </optgroup>
+                {% endfor %}
+                <option value="__custom__">➕ Custom Post Title (Type manually)</option>
+              </select>
+              <input type="text" name="post_title" id="new_post_title" list="predefinedTitlesList" class="form-control" placeholder="Select predefined title above or type custom" required>
+            </div>
+
+            <!-- Post Code & Scale -->
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Post Code <span class="text-danger">*</span></label>
+              <input type="text" name="post_code" id="new_post_code" class="form-control text-uppercase" placeholder="e.g. EST_BIO_CHEM" required>
+              <div class="form-text">Unique code identifier for internal reference.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Basic Scale (BS) <span class="text-danger">*</span></label>
+              <select name="basic_scale" id="new_basic_scale" class="form-select" required>
+                {% for scale in [12, 14, 15, 16, 17, 18, 19, 20] %}
+                  <option value="{{ scale }}" {% if scale == 15 %}selected{% endif %}>BS-{{ scale }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Cadre with Predefined Dropdown & Custom -->
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Cadre <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="text" name="cadre" id="new_cadre" list="predefinedCadresList" class="form-control" placeholder="Select or type custom cadre" required>
+                <select class="form-select" style="max-width: 170px;" onchange="handlePresetSelectToInput(this, 'new_cadre')">
+                  <option value="">-- Cadre --</option>
+                  {% for c in all_cadres %}
+                    <option value="{{ c }}">{{ c }}</option>
+                  {% endfor %}
+                  <option value="__custom__">➕ Custom</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Category with Predefined Dropdown & Custom -->
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="text" name="category" id="new_category" list="predefinedCategoriesList" class="form-control" placeholder="e.g. Science, Arts" required>
+                <select class="form-select" style="max-width: 140px;" onchange="handlePresetSelectToInput(this, 'new_category')">
+                  <option value="">-- Category --</option>
+                  {% for cat in all_categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                  {% endfor %}
+                  <option value="__custom__">➕ Custom</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Gender Applicability -->
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Gender Applicability</label>
+              <select name="gender" id="new_gender" class="form-select">
+                <option value="Both">Both (Male &amp; Female)</option>
+                <option value="Male">Male Only</option>
+                <option value="Female">Female Only</option>
+              </select>
+            </div>
+
+            <!-- Feeder Post Title with Predefined & Custom -->
+            <div class="col-md-8">
+              <label class="form-label fw-bold">Feeder Post Title (for Promotion)</label>
+              <div class="input-group">
+                <input type="text" name="feeder_post_title" id="new_feeder_post_title" list="predefinedFeederList" class="form-control" placeholder="Select feeder post or type custom">
+                <select class="form-select" style="max-width: 190px;" onchange="handlePresetSelectToInput(this, 'new_feeder_post_title')">
+                  <option value="">-- Feeder Post --</option>
+                  {% for f in all_feeder_posts %}
+                    <option value="{{ f }}">{{ f }}</option>
+                  {% endfor %}
+                  <option value="__custom__">➕ Custom</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Min Service Years -->
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Min Regular Service (Years)</label>
+              <input type="number" name="min_service_years" id="new_min_service_years" class="form-control" min="0" value="0">
+            </div>
+
+            <!-- Prescribed Qualification with Predefined Dropdown & Custom -->
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label fw-bold mb-0">Prescribed Qualification &amp; Terms</label>
+                <span class="small text-muted">Statutory terms from Service Rules 2014 &amp; Policy</span>
+              </div>
+              <select id="new_qualification_presets" class="form-select form-select-sm mb-2 text-success fw-semibold" onchange="applyQualificationPreset(this, 'new_prescribed_qualification')">
+                <option value="">-- ⚡ Quick Select Predefined Statutory Qualification (or customize below) --</option>
+                {% for q in all_qualifications %}
+                  <option value="{{ q }}">{{ q|truncate(95) }}</option>
+                {% endfor %}
+                <option value="__custom__">➕ Custom / Manual Entry</option>
+              </select>
+              <textarea name="prescribed_qualification" id="new_prescribed_qualification" class="form-control" rows="3" placeholder="Required academic degree, subjects, and professional training (e.g. B.Sc with B.Ed)"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-punjab"><i class="bi bi-check-circle me-1"></i> Save Post</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     MODAL: Edit Teaching Post (Predefined + Custom Options)
+     ========================================================================= -->
+<div class="modal fade" id="editPostModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 shadow">
+      <form id="editPostForm" method="POST" action="">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i> Edit Teaching Post &amp; Statutory Terms</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3">
+
+            <!-- Quick Predefined Title Selector & Auto-fill -->
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label fw-bold mb-0">Official Post Title <span class="text-danger">*</span></label>
+                <span class="badge bg-light text-dark border"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Predefined Catalog or Custom</span>
+              </div>
+              <select class="form-select form-select-sm mb-2 text-primary fw-semibold" id="edit_title_preset_select" onchange="handleTitlePresetSelect(this, 'edit')">
+                <option value="">-- ⚡ Quick Select Predefined Post Title (Auto-fills parameters) --</option>
+                {% for cadre_name, p_group in predefined_catalog|groupby('cadre') %}
+                  <optgroup label="{{ cadre_name }}">
+                    {% for p in p_group %}
+                      <option value="{{ p.title }}" 
+                              data-code="{{ p.code }}" 
+                              data-scale="{{ p.scale }}" 
+                              data-cadre="{{ p.cadre }}" 
+                              data-category="{{ p.category }}" 
+                              data-gender="{{ p.gender }}" 
+                              data-feeder="{{ p.feeder }}" 
+                              data-service="{{ p.service }}" 
+                              data-qualification="{{ p.qualification }}">{{ p.title }} (BS-{{ p.scale }})</option>
+                    {% endfor %}
+                  </optgroup>
+                {% endfor %}
+                <option value="__custom__">➕ Custom Post Title (Type manually)</option>
+              </select>
+              <input type="text" name="post_title" id="edit_post_title" list="predefinedTitlesList" class="form-control" placeholder="Select predefined title above or type custom" required>
+            </div>
+
+            <!-- Post Code (Readonly) & Basic Scale -->
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Post Code</label>
+              <input type="text" id="edit_post_code" class="form-control bg-light font-monospace" readonly>
+              <div class="form-text">System identifier cannot be modified.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Basic Scale (BS) <span class="text-danger">*</span></label>
+              <select name="basic_scale" id="edit_basic_scale" class="form-select" required>
+                {% for scale in [12, 14, 15, 16, 17, 18, 19, 20] %}
+                  <option value="{{ scale }}">BS-{{ scale }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Cadre with Predefined Dropdown & Custom -->
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Cadre <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="text" name="cadre" id="edit_cadre" list="predefinedCadresList" class="form-control" placeholder="Select or type custom cadre" required>
+                <select class="form-select" style="max-width: 170px;" onchange="handlePresetSelectToInput(this, 'edit_cadre')">
+                  <option value="">-- Cadre --</option>
+                  {% for c in all_cadres %}
+                    <option value="{{ c }}">{{ c }}</option>
+                  {% endfor %}
+                  <option value="__custom__">➕ Custom</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Category with Predefined Dropdown & Custom -->
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="text" name="category" id="edit_category" list="predefinedCategoriesList" class="form-control" placeholder="e.g. Science, Arts" required>
+                <select class="form-select" style="max-width: 140px;" onchange="handlePresetSelectToInput(this, 'edit_category')">
+                  <option value="">-- Category --</option>
+                  {% for cat in all_categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                  {% endfor %}
+                  <option value="__custom__">➕ Custom</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Gender Applicability -->
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Gender Applicability</label>
+              <select name="gender" id="edit_gender" class="form-select">
+                <option value="Both">Both</option>
+                <option value="Male">Male Only</option>
+                <option value="Female">Female Only</option>
+              </select>
+            </div>
+
+            <!-- Feeder Post Title with Predefined & Custom -->
+            <div class="col-md-8">
+              <label class="form-label fw-bold">Feeder Post Title (for Promotion)</label>
+              <div class="input-group">
+                <input type="text" name="feeder_post_title" id="edit_feeder_post_title" list="predefinedFeederList" class="form-control" placeholder="Select feeder post or type custom">
+                <select class="form-select" style="max-width: 190px;" onchange="handlePresetSelectToInput(this, 'edit_feeder_post_title')">
+                  <option value="">-- Feeder Post --</option>
+                  {% for f in all_feeder_posts %}
+                    <option value="{{ f }}">{{ f }}</option>
+                  {% endfor %}
+                  <option value="__custom__">➕ Custom</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Min Service Years -->
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Min Service (Years)</label>
+              <input type="number" name="min_service_years" id="edit_min_service_years" class="form-control" min="0">
+            </div>
+
+            <!-- Prescribed Qualification with Predefined Dropdown & Custom -->
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label fw-bold mb-0">Prescribed Qualification &amp; Terms</label>
+                <span class="small text-muted">Statutory terms from Service Rules 2014 &amp; Policy</span>
+              </div>
+              <select id="edit_qualification_presets" class="form-select form-select-sm mb-2 text-success fw-semibold" onchange="applyQualificationPreset(this, 'edit_prescribed_qualification')">
+                <option value="">-- ⚡ Quick Select Predefined Statutory Qualification (or customize below) --</option>
+                {% for q in all_qualifications %}
+                  <option value="{{ q }}">{{ q|truncate(95) }}</option>
+                {% endfor %}
+                <option value="__custom__">➕ Custom / Manual Entry</option>
+              </select>
+              <textarea name="prescribed_qualification" id="edit_prescribed_qualification" class="form-control" rows="3" placeholder="Required academic degree, subjects, and professional training (e.g. B.Sc with B.Ed)"></textarea>
+            </div>
+
+            <!-- Status Toggle -->
+            <div class="col-12">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" name="is_active" id="edit_is_active">
+                <label class="form-check-label fw-bold" for="edit_is_active">Post is Active (available across registration &amp; dropdowns)</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Update Post</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     STANDARDIZED DATALISTS FOR AUTOCOMPLETE & CUSTOM INPUT
+     ========================================================================= -->
+<datalist id="predefinedTitlesList">
+  {% for t in all_post_titles %}
+    <option value="{{ t }}">
+  {% endfor %}
+</datalist>
+
+<datalist id="predefinedCadresList">
+  {% for c in all_cadres %}
+    <option value="{{ c }}">
+  {% endfor %}
+</datalist>
+
+<datalist id="predefinedCategoriesList">
+  {% for cat in all_categories %}
+    <option value="{{ cat }}">
+  {% endfor %}
+</datalist>
+
+<datalist id="predefinedFeederList">
+  {% for f in all_feeder_posts %}
+    <option value="{{ f }}">
+  {% endfor %}
+</datalist>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handlePresetSelectToInput(selectEl, targetInputId) {
+  const val = selectEl.value;
+  const target = document.getElementById(targetInputId);
+  if (!target) return;
+  if (val === '__custom__') {
+    target.value = '';
+    target.focus();
+  } else if (val) {
+    target.value = val;
+  }
+}
+
+function applyQualificationPreset(selectEl, targetAreaId) {
+  const val = selectEl.value;
+  const target = document.getElementById(targetAreaId);
+  if (!target) return;
+  if (val === '__custom__') {
+    target.focus();
+  } else if (val) {
+    target.value = val;
+  }
+}
+
+function handleTitlePresetSelect(selectEl, prefix) {
+  const opt = selectEl.options[selectEl.selectedIndex];
+  if (!opt) return;
+
+  const titleInput = document.getElementById(`${prefix}_post_title`);
+  if (!titleInput) return;
+
+  if (opt.value === '__custom__') {
+    titleInput.value = '';
+    titleInput.focus();
+    return;
+  }
+
+  if (!opt.value) return;
+
+  titleInput.value = opt.value;
+
+  // Auto-fill associated parameters
+  if (opt.dataset.scale) {
+    const scaleEl = document.getElementById(`${prefix}_basic_scale`);
+    if (scaleEl) scaleEl.value = opt.dataset.scale;
+  }
+  if (opt.dataset.cadre) {
+    const cadreEl = document.getElementById(`${prefix}_cadre`);
+    if (cadreEl) cadreEl.value = opt.dataset.cadre;
+  }
+  if (opt.dataset.category) {
+    const catEl = document.getElementById(`${prefix}_category`);
+    if (catEl) catEl.value = opt.dataset.category;
+  }
+  if (opt.dataset.gender) {
+    const genEl = document.getElementById(`${prefix}_gender`);
+    if (genEl) genEl.value = opt.dataset.gender;
+  }
+  if (opt.dataset.feeder !== undefined) {
+    const feederEl = document.getElementById(`${prefix}_feeder_post_title`);
+    if (feederEl) feederEl.value = opt.dataset.feeder;
+  }
+  if (opt.dataset.service !== undefined) {
+    const servEl = document.getElementById(`${prefix}_min_service_years`);
+    if (servEl) servEl.value = opt.dataset.service;
+  }
+  if (opt.dataset.qualification !== undefined) {
+    const qualEl = document.getElementById(`${prefix}_prescribed_qualification`);
+    if (qualEl) qualEl.value = opt.dataset.qualification;
+    const qualPreset = document.getElementById(`${prefix}_qualification_presets`);
+    if (qualPreset) qualPreset.value = opt.dataset.qualification;
+  }
+  if (prefix === 'new' && opt.dataset.code) {
+    const codeEl = document.getElementById('new_post_code');
+    if (codeEl) codeEl.value = opt.dataset.code + '_CUSTOM';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const editButtons = document.querySelectorAll('.btn-edit-post');
+  const editForm = document.getElementById('editPostForm');
+  
+  editButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const postId = this.dataset.id;
+      editForm.action = `/admin/teaching-posts/${postId}/edit`;
+      
+      const title = this.dataset.title || '';
+      const qualification = this.dataset.qualification || '';
+
+      document.getElementById('edit_post_code').value = this.dataset.code || '';
+      document.getElementById('edit_post_title').value = title;
+      document.getElementById('edit_cadre').value = this.dataset.cadre || '';
+      document.getElementById('edit_basic_scale').value = this.dataset.scale || '15';
+      document.getElementById('edit_category').value = this.dataset.category || '';
+      document.getElementById('edit_gender').value = this.dataset.gender || 'Both';
+      document.getElementById('edit_feeder_post_title').value = this.dataset.feeder || '';
+      document.getElementById('edit_min_service_years').value = this.dataset.service || '0';
+      document.getElementById('edit_prescribed_qualification').value = qualification;
+      document.getElementById('edit_is_active').checked = (this.dataset.active === '1');
+
+      // Sync preset dropdowns if exact matches exist
+      const titleSelect = document.getElementById('edit_title_preset_select');
+      if (titleSelect) {
+        titleSelect.value = title;
+      }
+      const qualSelect = document.getElementById('edit_qualification_presets');
+      if (qualSelect) {
+        qualSelect.value = qualification;
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

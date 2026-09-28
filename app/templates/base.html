@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>{% block title %}{{ app_subtitle }}{% endblock %} - {{ app_name }}</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Custom Master Theme CSS (Dual-Menu, Zero Horizontal Scroll, Neon Animation) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  
+  <!-- AdSense Header Integration if enabled -->
+  {% if adsense and adsense.ads_enabled and adsense.publisher_id %}
+    {% if adsense.auto_ads_enabled %}
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense.publisher_id }}" crossorigin="anonymous"></script>
+    {% endif %}
+    {% if adsense.header_code %}
+      {{ adsense.header_code | safe }}
+    {% endif %}
+  {% endif %}
+  
+  <!-- Session Security & Inactivity Configuration -->
+  {% if current_user and session_timeout_seconds %}
+    <meta name="session-timeout-seconds" content="{{ session_timeout_seconds }}">
+    <meta name="session-timeout-minutes" content="{{ session_timeout_minutes }}">
+  {% endif %}
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+<div class="app-layout">
+  
+  <!-- ======================================================================
+       1. TOPBAR & HORIZONTAL TOP MENU
+       ====================================================================== -->
+  <header class="app-topbar">
+    <div class="topbar-content">
+      
+      <!-- Left: Hamburger Toggle & Official Brand -->
+      <div class="d-flex align-items-center">
+        {% if current_user %}
+          <button class="hamburger-btn me-2" id="sidebarToggleBtn" type="button" title="Toggle Navigation Menu">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+          </button>
+        {% endif %}
+        
+        <a class="gov-brand" href="{{ url_for('index') }}">
+          <span class="gov-logo-badge">TPP</span>
+          <div>
+            <div class="gov-brand-title">{{ app_name }}</div>
+            <div class="gov-brand-sub d-none d-sm-block">School Education Department</div>
+          </div>
+        </a>
+      </div>
+
+
+
+      <!-- Right: User Account Dropdown & Interactive Guides -->
+      <div class="topbar-actions">
+        {% if current_user %}
+          <!-- Interactive Guide Buttons -->
+          <div class="d-flex align-items-center gap-1 me-1 me-sm-2">
+            <button class="btn btn-sm btn-outline-light d-flex align-items-center gap-1 py-1 px-2 border-opacity-50" type="button" onclick="openCurrentTabGuide()" title="How to use this page">
+              <i class="bi bi-question-circle-fill text-warning"></i>
+              <span class="d-none d-lg-inline small fw-semibold">Tab Guide</span>
+            </button>
+            <button class="btn btn-sm btn-gold d-flex align-items-center gap-1 py-1 px-2 text-dark shadow-sm" type="button" onclick="openPortalOverviewGuide()" title="Portal Process Workflow">
+              <i class="bi bi-compass-fill"></i>
+              <span class="d-none d-md-inline small fw-bold">Process Guide</span>
+            </button>
+          </div>
+
+          <div class="dropdown">
+            <button class="btn btn-sm text-white d-flex align-items-center gap-2 p-1 border-0" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="badge badge-role-{{ current_user.role.lower() }} d-none d-sm-inline">{{ current_user.role|display_role }}</span>
+              <span class="d-none d-md-inline small fw-semibold text-truncate" style="max-width: 140px;">{{ current_user.full_name }}</span>
+              <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-weight: 700; font-size: 0.85rem;">
+                {{ current_user.full_name[:1]|upper }}
+              </div>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+              <li class="dropdown-header">
+                <div class="fw-bold text-dark">{{ current_user.full_name }}</div>
+                <div class="small text-muted">{{ current_user.username }} &bull; {{ current_user.role|display_role }}</div>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item py-2" href="{{ url_for('auth.change_password') }}">
+                  <i class="bi bi-key me-2 text-warning"></i> Change Password
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item py-2 text-danger" href="{{ url_for('auth.logout') }}">
+                  <i class="bi bi-box-arrow-right me-2"></i> Sign Out
+                </a>
+              </li>
+            </ul>
+          </div>
+        {% else %}
+          <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-sm btn-outline-light d-none d-sm-inline-flex align-items-center gap-1" href="{{ url_for('index', view='home') }}">
+              <i class="bi bi-house-door"></i> Home
+            </a>
+            <a class="btn btn-sm btn-outline-warning d-none d-md-inline-flex align-items-center gap-1" href="{{ url_for('auth.register') }}">
+              <i class="bi bi-person-badge"></i> Admin Sign Up
+            </a>
+            <a class="btn btn-sm btn-gold px-3 d-inline-flex align-items-center gap-1" href="{{ url_for('auth.login') }}">
+              <i class="bi bi-box-arrow-in-right"></i> Sign In
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ======================================================================
+       2. APP BODY (VERTICAL SIDEBAR + CONTENT)
+       ====================================================================== -->
+  <div class="app-body">
+    
+    {% if current_user %}
+      <!-- VERTICAL SIDEBAR MENU -->
+      <aside class="app-sidebar" id="appSidebar">
+        
+        <!-- Sidebar User Card Header -->
+        <div class="sidebar-user-header">
+          <div class="sidebar-user-info">
+            <div class="sidebar-avatar">
+              {{ current_user.full_name[:1]|upper }}
+            </div>
+            <div class="sidebar-user-details">
+              <div class="sidebar-user-name">{{ current_user.full_name }}</div>
+              <div class="sidebar-user-role">
+                <span class="badge badge-role-{{ current_user.role.lower() }}" style="font-size: 0.65rem;">{{ current_user.role|display_role }}</span>
+              </div>
+            </div>
+          </div>
+          <!-- Close button for mobile drawer -->
+          <button type="button" class="btn btn-sm text-white-50 p-0 sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar">
+            <i class="bi bi-x-lg fs-5"></i>
+          </button>
+        </div>
+
+        <!-- Sidebar Navigation Items (Role-Based) -->
+        <div class="py-2">
+          
+          {% if current_user.role == 'SUPERADMIN' %}
+            <!-- Provincial Governance Menu Groups -->
+            <div class="sidebar-section-title">Provincial Governance</div>
+            <a href="{{ url_for('superadmin.dashboard') }}" class="side-menu-link {% if request.endpoint == 'superadmin.dashboard' %}active{% endif %}">
+              <i class="bi bi-shield-shaded"></i>
+              <span class="side-menu-text">Provincial Control Center</span>
+              {% if request.endpoint == 'superadmin.dashboard' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.teachers_list') }}" class="side-menu-link {% if request.endpoint in ['admin.teachers_list', 'admin.new_teacher', 'admin.edit_teacher', 'admin.teacher_detail'] %}active{% endif %}">
+              <i class="bi bi-people"></i>
+              <span class="side-menu-text">Teachers Directory</span>
+              {% if request.endpoint in ['admin.teachers_list', 'admin.new_teacher', 'admin.edit_teacher', 'admin.teacher_detail'] %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.excel_import') }}" class="side-menu-link {% if request.endpoint == 'admin.excel_import' %}active{% endif %}">
+              <i class="bi bi-file-earmark-spreadsheet"></i>
+              <span class="side-menu-text">Bulk Excel Import</span>
+              {% if request.endpoint == 'admin.excel_import' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.seniority_list') }}" class="side-menu-link {% if request.endpoint == 'admin.seniority_list' %}active{% endif %}">
+              <i class="bi bi-sort-numeric-down"></i>
+              <span class="side-menu-text">Seniority Roll</span>
+              {% if request.endpoint == 'admin.seniority_list' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.dpc_schedule') }}" class="side-menu-link {% if request.endpoint in ['admin.dpc_schedule', 'admin.create_dpc_meeting'] %}active{% endif %}">
+              <i class="bi bi-calendar-event"></i>
+              <span class="side-menu-text">DPC Schedule</span>
+              {% if request.endpoint == 'admin.dpc_schedule' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.retirements_review') }}" class="side-menu-link {% if request.endpoint in ['admin.retirements_review', 'admin.bulk_retire'] %}active{% endif %}">
+              <i class="bi bi-clock-history text-danger"></i>
+              <span class="side-menu-text">Retirements (60+)</span>
+              {% if pending_retirements_count > 0 %}
+                <span class="badge bg-danger ms-auto px-2 py-0 rounded-pill" style="font-size: 0.65rem;">{{ pending_retirements_count }}</span>
+              {% elif request.endpoint == 'admin.retirements_review' %}
+                <span class="active-pill"></span>
+              {% endif %}
+            </a>
+            <a href="{{ url_for('admin.promotion_lists') }}" class="side-menu-link {% if request.endpoint == 'admin.promotion_lists' %}active{% endif %}">
+              <i class="bi bi-award-fill"></i>
+              <span class="side-menu-text">Promotion Lists</span>
+              {% if request.endpoint == 'admin.promotion_lists' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.pdf_management') }}" class="side-menu-link {% if request.endpoint in ['admin.pdf_management', 'admin.update_pdf_settings'] %}active{% endif %}">
+              <i class="bi bi-file-earmark-check text-primary"></i>
+              <span class="side-menu-text">PDF Stamps &amp; Hub</span>
+              {% if request.endpoint == 'admin.pdf_management' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.teaching_posts') }}" class="side-menu-link {% if request.endpoint == 'admin.teaching_posts' %}active{% endif %}">
+              <i class="bi bi-briefcase"></i>
+              <span class="side-menu-text">Teaching Posts</span>
+              {% if request.endpoint == 'admin.teaching_posts' %}<span class="active-pill"></span>{% endif %}
+            </a>
+
+            <div class="sidebar-section-title">Rules &amp; Sanctions</div>
+            <a href="{{ url_for('superadmin.manage_rules') }}" class="side-menu-link {% if request.endpoint == 'superadmin.manage_rules' %}active{% endif %}">
+              <i class="bi bi-journal-text"></i>
+              <span class="side-menu-text">Rules Engine (2014)</span>
+              {% if request.endpoint == 'superadmin.manage_rules' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.vacancies') }}" class="side-menu-link {% if request.endpoint == 'admin.vacancies' %}active{% endif %}">
+              <i class="bi bi-pie-chart"></i>
+              <span class="side-menu-text">Vacancies &amp; Quotas</span>
+              {% if request.endpoint == 'admin.vacancies' %}<span class="active-pill"></span>{% endif %}
+            </a>
+
+            <div class="sidebar-section-title">Administration</div>
+            <a href="{{ url_for('superadmin.manage_admins') }}" class="side-menu-link {% if request.endpoint == 'superadmin.manage_admins' %}active{% endif %}">
+              <i class="bi bi-person-badge"></i>
+              <span class="side-menu-text">District Admins</span>
+              {% if request.endpoint == 'superadmin.manage_admins' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('superadmin.manage_adsense') }}" class="side-menu-link {% if request.endpoint == 'superadmin.manage_adsense' %}active{% endif %}">
+              <i class="bi bi-google"></i>
+              <span class="side-menu-text">AdSense Setup</span>
+              {% if request.endpoint == 'superadmin.manage_adsense' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('superadmin.audit_logs') }}" class="side-menu-link {% if request.endpoint == 'superadmin.audit_logs' %}active{% endif %}">
+              <i class="bi bi-activity"></i>
+              <span class="side-menu-text">Security Audit Logs</span>
+              {% if request.endpoint == 'superadmin.audit_logs' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('superadmin.password_resets') }}" class="side-menu-link {% if request.endpoint == 'superadmin.password_resets' %}active{% endif %}">
+              <i class="bi bi-key-fill text-warning"></i>
+              <span class="side-menu-text">Password Resets</span>
+              {% if pending_password_resets_count > 0 %}
+                <span class="badge bg-danger ms-auto px-2 py-0 rounded-pill" style="font-size: 0.65rem;">{{ pending_password_resets_count }}</span>
+              {% elif request.endpoint == 'superadmin.password_resets' %}
+                <span class="active-pill"></span>
+              {% endif %}
+            </a>
+
+          {% elif current_user.role == 'ADMIN' %}
+            <!-- 📊 DASHBOARD -->
+            <div class="sidebar-section-title">📊 DASHBOARD</div>
+            <a href="{{ url_for('admin.dashboard') }}" class="side-menu-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+              <i class="bi bi-speedometer2"></i>
+              <span class="side-menu-text">Operations Dashboard</span>
+              {% if request.endpoint == 'admin.dashboard' %}<span class="active-pill"></span>{% endif %}
+            </a>
+
+            <!-- 👥 TEACHER MANAGEMENT -->
+            <div class="sidebar-section-title">👥 TEACHER MANAGEMENT</div>
+            <a href="{{ url_for('admin.teachers_list') }}" class="side-menu-link {% if request.endpoint in ['admin.teachers_list', 'admin.new_teacher', 'admin.edit_teacher', 'admin.teacher_detail'] %}active{% endif %}">
+              <i class="bi bi-people"></i>
+              <span class="side-menu-text">Teachers Directory</span>
+              {% if request.endpoint in ['admin.teachers_list', 'admin.new_teacher', 'admin.edit_teacher', 'admin.teacher_detail'] %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.data_quality') }}" class="side-menu-link {% if request.endpoint == 'admin.data_quality' %}active{% endif %}">
+              <i class="bi bi-shield-check text-primary"></i>
+              <span class="side-menu-text">Data Quality Monitor</span>
+              {% if request.endpoint == 'admin.data_quality' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.excel_import') }}" class="side-menu-link {% if request.endpoint == 'admin.excel_import' %}active{% endif %}">
+              <i class="bi bi-file-earmark-spreadsheet"></i>
+              <span class="side-menu-text">Bulk Excel Import</span>
+              {% if request.endpoint == 'admin.excel_import' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.verifications') }}" class="side-menu-link {% if request.endpoint == 'admin.verifications' %}active{% endif %}">
+              <i class="bi bi-check2-circle"></i>
+              <span class="side-menu-text">Verification Queue</span>
+              {% if request.endpoint == 'admin.verifications' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.corrections') }}" class="side-menu-link {% if request.endpoint == 'admin.corrections' %}active{% endif %}">
+              <i class="bi bi-pencil-square"></i>
+              <span class="side-menu-text">Correction Requests</span>
+              {% if pending_corrections_count > 0 %}
+                <span class="badge bg-danger ms-auto px-2 py-0 rounded-pill" style="font-size: 0.65rem;">{{ pending_corrections_count }}</span>
+              {% elif request.endpoint == 'admin.corrections' %}
+                <span class="active-pill"></span>
+              {% endif %}
+            </a>
+            <a href="{{ url_for('admin.teacher_credentials') }}" class="side-menu-link {% if request.endpoint in ['admin.teacher_credentials', 'admin.dispatch_teacher_password', 'admin.reject_teacher_reset_ticket', 'admin.update_teacher_credentials'] %}active{% endif %}">
+              <i class="bi bi-key-fill text-warning"></i>
+              <span class="side-menu-text">Credentials &amp; Resets</span>
+              {% if pending_password_resets_count > 0 %}
+                <span class="badge bg-danger ms-auto px-2 py-0 rounded-pill" style="font-size: 0.65rem;">{{ pending_password_resets_count }}</span>
+              {% elif request.endpoint == 'admin.teacher_credentials' %}
+                <span class="active-pill"></span>
+              {% endif %}
+            </a>
+
+            <!-- 🏫 PROMOTION -->
+            <div class="sidebar-section-title">🏫 PROMOTION</div>
+            <a href="{{ url_for('admin.promotion_lists') }}" class="side-menu-link {% if request.endpoint == 'admin.promotion_lists' and request.args.get('tab') != 'promoted' %}active{% endif %}">
+              <i class="bi bi-award-fill"></i>
+              <span class="side-menu-text">Promotion Scrutiny</span>
+              {% if request.endpoint == 'admin.promotion_lists' and request.args.get('tab') != 'promoted' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.promotion_runs') }}" class="side-menu-link {% if request.endpoint in ['admin.promotion_runs', 'admin.promotion_run_detail'] %}active{% endif %}">
+              <i class="bi bi-journal-bookmark text-success"></i>
+              <span class="side-menu-text">Promotion Runs &amp; Rolls</span>
+              {% if request.endpoint in ['admin.promotion_runs', 'admin.promotion_run_detail'] %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.vacancies') }}" class="side-menu-link {% if request.endpoint == 'admin.vacancies' %}active{% endif %}">
+              <i class="bi bi-pie-chart"></i>
+              <span class="side-menu-text">Vacancies &amp; Quotas</span>
+              {% if request.endpoint == 'admin.vacancies' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.teaching_posts') }}" class="side-menu-link {% if request.endpoint == 'admin.teaching_posts' %}active{% endif %}">
+              <i class="bi bi-briefcase"></i>
+              <span class="side-menu-text">Teaching Posts</span>
+              {% if request.endpoint == 'admin.teaching_posts' %}<span class="active-pill"></span>{% endif %}
+            </a>
+
+            <!-- 📅 DPC -->
+            <div class="sidebar-section-title">📅 DPC</div>
+            <a href="{{ url_for('admin.dpc_schedule') }}" class="side-menu-link {% if request.endpoint in ['admin.dpc_schedule', 'admin.create_dpc_meeting'] %}active{% endif %}">
+              <i class="bi bi-calendar-event"></i>
+              <span class="side-menu-text">DPC Schedule</span>
+              {% if request.endpoint == 'admin.dpc_schedule' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.seniority_list') }}" class="side-menu-link {% if request.endpoint == 'admin.seniority_list' %}active{% endif %}">
+              <i class="bi bi-sort-numeric-down"></i>
+              <span class="side-menu-text">Seniority Roll</span>
+              {% if request.endpoint == 'admin.seniority_list' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.promotion_lists', tab='promoted') }}" class="side-menu-link {% if request.endpoint == 'admin.promotion_lists' and request.args.get('tab') == 'promoted' %}active{% endif %}">
+              <i class="bi bi-check2-all text-success"></i>
+              <span class="side-menu-text">DPC Decisions &amp; Orders</span>
+            </a>
+
+            <!-- 👴 SUPERANNUATION -->
+            <div class="sidebar-section-title">👴 SUPERANNUATION</div>
+            <a href="{{ url_for('admin.retirements_review') }}" class="side-menu-link {% if request.endpoint in ['admin.retirements_review', 'admin.bulk_retire'] %}active{% endif %}">
+              <i class="bi bi-clock-history text-danger"></i>
+              <span class="side-menu-text">Retirements (Age 60+)</span>
+              {% if pending_retirements_count > 0 %}
+                <span class="badge bg-danger ms-auto px-2 py-0 rounded-pill" style="font-size: 0.65rem;">{{ pending_retirements_count }}</span>
+              {% elif request.endpoint == 'admin.retirements_review' %}
+                <span class="active-pill"></span>
+              {% endif %}
+            </a>
+
+            <!-- 📄 DOCUMENTS & REPORTS -->
+            <div class="sidebar-section-title">📄 DOCUMENTS &amp; REPORTS</div>
+            <a href="{{ url_for('admin.pdf_management') }}" class="side-menu-link {% if request.endpoint in ['admin.pdf_management', 'admin.update_pdf_settings'] %}active{% endif %}">
+              <i class="bi bi-stamp text-danger"></i>
+              <span class="side-menu-text">PDF Stamps &amp; Gazette Hub</span>
+              {% if request.endpoint == 'admin.pdf_management' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('admin.reports') }}" class="side-menu-link {% if request.endpoint == 'admin.reports' %}active{% endif %}">
+              <i class="bi bi-file-earmark-pdf"></i>
+              <span class="side-menu-text">Generated Reports</span>
+              {% if request.endpoint == 'admin.reports' %}<span class="active-pill"></span>{% endif %}
+            </a>
+
+          {% elif current_user.role == 'TEACHER' %}
+            <!-- Teacher Menu Groups -->
+            <div class="sidebar-section-title">Teacher Portal</div>
+            <a href="{{ url_for('teacher.dashboard') }}" class="side-menu-link {% if request.endpoint == 'teacher.dashboard' %}active{% endif %}">
+              <i class="bi bi-house-door"></i>
+              <span class="side-menu-text">Dashboard</span>
+              {% if request.endpoint == 'teacher.dashboard' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('teacher.profile') }}" class="side-menu-link {% if request.endpoint == 'teacher.profile' %}active{% endif %}">
+              <i class="bi bi-person"></i>
+              <span class="side-menu-text">My Profile</span>
+              {% if request.endpoint == 'teacher.profile' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('teacher.qualifications') }}" class="side-menu-link {% if request.endpoint == 'teacher.qualifications' %}active{% endif %}">
+              <i class="bi bi-mortarboard"></i>
+              <span class="side-menu-text">Qualifications</span>
+              {% if request.endpoint == 'teacher.qualifications' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('teacher.service_history') }}" class="side-menu-link {% if request.endpoint == 'teacher.service_history' %}active{% endif %}">
+              <i class="bi bi-clock-history"></i>
+              <span class="side-menu-text">Service History</span>
+              {% if request.endpoint == 'teacher.service_history' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('teacher.correction_request') }}" class="side-menu-link {% if request.endpoint in ['teacher.correction_request', 'teacher.new_correction_request'] %}active{% endif %}">
+              <i class="bi bi-pencil-square"></i>
+              <span class="side-menu-text">Correction Requests</span>
+              {% if request.endpoint in ['teacher.correction_request', 'teacher.new_correction_request'] %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('teacher.seniority_view') }}" class="side-menu-link {% if request.endpoint == 'teacher.seniority_view' %}active{% endif %}">
+              <i class="bi bi-list-ol"></i>
+              <span class="side-menu-text">My Seniority</span>
+              {% if request.endpoint == 'teacher.seniority_view' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('teacher.promotion_readiness') }}" class="side-menu-link {% if request.endpoint == 'teacher.promotion_readiness' %}active{% endif %}">
+              <i class="bi bi-graph-up-arrow text-success"></i>
+              <span class="side-menu-text">Promotion Readiness</span>
+              {% if request.endpoint == 'teacher.promotion_readiness' %}<span class="active-pill"></span>{% endif %}
+            </a>
+            <a href="{{ url_for('teacher.eligibility_simulator') }}" class="side-menu-link {% if request.endpoint == 'teacher.eligibility_simulator' %}active{% endif %}">
+              <i class="bi bi-calculator"></i>
+              <span class="side-menu-text">Promotion Simulator</span>
+              {% if request.endpoint == 'teacher.eligibility_simulator' %}<span class="active-pill"></span>{% endif %}
+            </a>
+          {% endif %}
+
+        </div>
+
+        <!-- Sidebar Footer with Direct Logout & Session Indicator -->
+        <div class="sidebar-footer">
+          <div class="sidebar-footer-info d-flex align-items-center justify-content-between mb-2 px-1">
+            <span class="small text-white-50" style="font-size: 0.72rem;">
+              <i class="bi bi-clock-history me-1 text-warning"></i> Auto-Logout: {{ session_timeout_minutes }}m
+            </span>
+            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">Active</span>
+          </div>
+          <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2" title="Sign Out of Portal">
+            <i class="bi bi-box-arrow-right fs-6"></i>
+            <span class="side-menu-text fw-semibold">Sign Out</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- Mobile Backdrop Overlay -->
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    {% endif %}
+
+    <!-- ======================================================================
+         3. MAIN CONTENT WRAPPER
+         ====================================================================== -->
+    <div class="app-content-wrapper">
+      
+      <!-- Optional AdSlot: Header -->
+      {% if ad_slots is mapping and 'header' in ad_slots and adsense and adsense.ads_enabled %}
+        <div class="container-fluid mt-2">
+          {% for slot in ad_slots['header'] %}
+            <div class="adsense-container">
+              <div class="adsense-placeholder">Advertisement Slot: {{ slot.slot_name }}</div>
+              {% if adsense.test_mode %}
+                <div class="alert alert-light border py-2 my-1 text-center small text-muted">
+                  [Google AdSense Responsive Banner Preview - Ad Unit #{{ slot.slot_id }}]
+                </div>
+              {% else %}
+                <ins class="adsbygoogle" style="display:block" data-ad-client="{{ adsense.publisher_id }}" data-ad-slot="{{ slot.slot_id }}" data-ad-format="{{ slot.slot_format }}" data-full-width-responsive="true"></ins>
+                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Flash Messages -->
+      <div class="container-fluid mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-info-circle-fill me-2"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <!-- Main Content Block -->
+      <main class="app-main-content">
+        {% block content %}
+          {% if error_code %}
+            <div class="container py-5 text-center">
+              <h1 class="display-3 text-danger fw-bold">{{ error_code }}</h1>
+              <p class="lead">{{ error_message }}</p>
+              <a href="{{ url_for('index') }}" class="btn btn-punjab mt-3"><i class="bi bi-arrow-left me-1"></i> Return to Home</a>
+            </div>
+          {% endif %}
+        {% endblock %}
+      </main>
+
+      <!-- Optional AdSlot: Footer -->
+      {% if ad_slots is mapping and 'footer' in ad_slots and adsense and adsense.ads_enabled %}
+        <div class="container-fluid my-2">
+          {% for slot in ad_slots['footer'] %}
+            <div class="adsense-container">
+              <div class="adsense-placeholder">Advertisement Slot: {{ slot.slot_name }}</div>
+              {% if adsense.test_mode %}
+                <div class="alert alert-light border py-2 my-1 text-center small text-muted">
+                  [Google AdSense Footer Leaderboard Preview - Ad Unit #{{ slot.slot_id }}]
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Institutional Footer -->
+      <footer>
+        <div class="container-fluid">
+          <div class="row align-items-center">
+            <div class="col-md-6 text-center text-md-start mb-2 mb-md-0">
+              <strong>{{ department }}</strong><br>
+              <small>{{ app_name }} - {{ app_subtitle }} (v{{ app_version }})</small>
+            </div>
+            <div class="col-md-6 text-center text-md-end">
+              <small class="text-muted">
+                SED Service Rules 2014 &amp; Recruitment Policy &bull; Teacher Seniority &amp; Promotion Portal
+              </small>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+</div>
+
+{% if current_user %}
+<!-- ======================================================================
+     PORTAL OVERVIEW & PROCESS GUIDE MODAL (7 STAGES ADMIN / 6 STEPS TEACHER)
+     ====================================================================== -->
+<div class="modal fade" id="portalProcessModal" tabindex="-1" aria-labelledby="portalProcessModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content shadow-lg border-0 overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="modal-header text-white py-3 px-4 border-0" style="background: linear-gradient(135deg, #0b6b3a 0%, #155724 100%);">
+        <div>
+          <h5 class="modal-title fw-bold mb-1 d-flex align-items-center gap-2" id="portalProcessModalLabel">
+            {% if current_user.role in ['ADMIN', 'SUPERADMIN'] %}
+              <i class="bi bi-compass-fill text-warning fs-4"></i> Department Administrator Workflow Guide
+            {% else %}
+              <i class="bi bi-mortarboard-fill text-warning fs-4"></i> Teacher Service &amp; Promotion Guide
+            {% endif %}
+          </h5>
+          <div class="small text-white-50">
+            {% if current_user.role in ['ADMIN', 'SUPERADMIN'] %}
+              Master Mental Model: <strong class="text-white font-monospace">DATA &rarr; VACANCY &rarr; RETIREMENT &rarr; DPC &rarr; SCRUTINY &rarr; GAZETTE &rarr; DECISION</strong>
+            {% else %}
+              Master Mental Model: <strong class="text-white font-monospace">CHECK &rarr; COMPLETE &rarr; VERIFY &rarr; CORRECT IF NEEDED &rarr; VIEW STATUS</strong>
+            {% endif %}
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body p-4 bg-light">
+        
+        {% if current_user.role in ['ADMIN', 'SUPERADMIN'] %}
+        <!-- ADMIN: 7 MAJOR STAGES -->
+        <div class="alert bg-white border shadow-sm p-3 mb-3 rounded-3">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="badge bg-success-subtle text-success fw-bold px-2 py-1">THE 7-STAGE PROMOTION ENGINE</span>
+            <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Follow these 7 stages for every DPC cycle</small>
+          </div>
+          <p class="small text-secondary mb-0">
+            Managing district promotions is streamlined into 7 sequential stages. Follow this operational roadmap to guarantee statutory compliance under SED Service Rules 2014.
+          </p>
+        </div>
+
+        <div class="d-flex flex-column gap-3">
+          
+          <!-- Stage 1 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #0b6b3a;">1</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">👥 1. Teachers Directory, Data Quality &amp; Excel Import</h6>
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Stage: DATA</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Import, verify, corrections &amp; data integrity</strong></div>
+                <p class="small text-secondary mb-2">
+                  Maintain the district teacher roster. Use Bulk Excel Import to onboard staff, review self-verifications, monitor data quality gaps, and inspect blue (edited) and green (new additions) audit cells.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                  <a href="{{ url_for('admin.teachers_list') }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-people me-1"></i>Teachers Directory</a>
+                  <a href="{{ url_for('admin.excel_import') }}" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel Import</a>
+                  <a href="{{ url_for('admin.data_quality') }}" class="btn btn-sm btn-outline-warning text-dark py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-shield-check me-1"></i>Data Quality Monitor</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 2 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #0b6b3a;">2</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">🏫 2. Vacancies &amp; Quotas</h6>
+                  <span class="badge bg-info-subtle text-info border border-info-subtle">Stage: VACANCY</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Sanctioned posts + working strength + quota</strong></div>
+                <p class="small text-secondary mb-2">
+                  Record sanctioned posts and working strength for each target promotional cadre (EST, SST, HM). Set statutory promotion quota percentages (e.g. 50% In-Service Quota) to define Zone 1.
+                </p>
+                <a href="{{ url_for('admin.vacancies') }}" class="btn btn-sm btn-outline-info py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-pie-chart me-1"></i>Manage Vacancies</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 3 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 bg-danger" style="width: 38px; height: 38px;">3</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">👴 3. Retirements &amp; Superannuation</h6>
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Stage: RETIREMENT</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Age 60+ review &amp; bulk retirement</strong></div>
+                <p class="small text-secondary mb-2">
+                  Audit teachers turning 60 years of age. Bulk-retire them with official retirement order numbers to disqualify them from in-service promotion and vacate positions.
+                </p>
+                <a href="{{ url_for('admin.retirements_review') }}" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-clock-history me-1"></i>Review Retirements</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 4 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 bg-warning text-dark" style="width: 38px; height: 38px;">4</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">📅 4. DPC Schedule &amp; Agenda</h6>
+                  <span class="badge bg-warning-subtle text-dark border border-warning-subtle">Stage: DPC</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Create meeting &amp; review cadre-wise retiring counts</strong></div>
+                <p class="small text-secondary mb-2">
+                  Schedule upcoming DPC sessions with start and end dates. The system calculates upcoming retiring counts cadre-wise under each scheduled date. Editable before end date.
+                </p>
+                <a href="{{ url_for('admin.dpc_schedule') }}" class="btn btn-sm btn-outline-warning text-dark py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-calendar-event me-1"></i>DPC Meeting Schedule</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 5 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #0b6b3a;">5</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">⚙️ 5. Promotion Scrutiny, Pre-Flight &amp; Official Runs</h6>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">Stage: SCRUTINY</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Run eligibility + seniority + quota zones + freeze rolls</strong></div>
+                <p class="small text-secondary mb-2">
+                  Verify the 9-point Pre-Flight checklist, run statutory scrutiny across 8 conditions, organize candidates into Zones 1, 2, and 3, and manage immutable frozen rolls (Draft &rarr; Finalized &rarr; Locked).
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                  <a href="{{ url_for('admin.promotion_lists') }}" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-award-fill me-1"></i>Promotion Scrutiny Roll</a>
+                  <a href="{{ url_for('admin.promotion_runs') }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-archive-fill me-1"></i>Promotion Runs Archive</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 6 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 bg-dark" style="width: 38px; height: 38px;">6</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">📄 6. Official Gazette &amp; PDF Management</h6>
+                  <span class="badge bg-secondary-subtle text-dark border">Stage: GAZETTE</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Configure stamp/signatories + generate PDF</strong></div>
+                <p class="small text-secondary mb-2">
+                  Toggle the official circular stamp seal on or off. Add, edit, or remove DPC committee signatories (Chairman, Secretary, Members). Export high-resolution official gazettes.
+                </p>
+                <a href="{{ url_for('admin.pdf_management') }}" class="btn btn-sm btn-outline-dark py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-file-earmark-check me-1"></i>PDF Hub &amp; Stamps</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 7 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #084926;">7</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">🏛️ 7. DPC Decisions &amp; Seniority Appending</h6>
+                  <span class="badge bg-success text-white">Stage: DECISION</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Promote / Defer / Supersede &rarr; update records</strong></div>
+                <p class="small text-secondary mb-2">
+                  Enter official committee determinations. Promoted candidates automatically receive their new cadre designation, pay scale, and promotional seniority rank (max + 1) while retaining feeder seniority.
+                </p>
+                <a href="{{ url_for('admin.promotion_lists') }}" class="btn btn-sm btn-punjab py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-check2-all me-1"></i>Execute Decisions</a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="alert alert-success border-success-subtle mt-3 mb-0 text-center small fw-semibold">
+          <i class="bi bi-lightbulb-fill text-warning me-1"></i> Mental Model: DATA &rarr; VACANCY &rarr; RETIREMENT &rarr; DPC &rarr; SCRUTINY &rarr; GAZETTE &rarr; DECISION
+        </div>
+
+        {% else %}
+        <!-- TEACHER: 6 STEPS -->
+        <div class="alert bg-white border shadow-sm p-3 mb-3 rounded-3">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="badge bg-success-subtle text-success fw-bold px-2 py-1">TEACHER RESPONSIBILITY ROADMAP</span>
+            <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Your complete promotion journey</small>
+          </div>
+          <p class="small text-secondary mb-0">
+            As a teacher in the School Education Department, your responsibility follows 6 simple steps to guarantee you are fully eligible when DPC meetings are convened.
+          </p>
+        </div>
+
+        <div class="d-flex flex-column gap-3">
+          
+          <!-- Step 1 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #0b6b3a;">1</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">🏠 1. Dashboard &amp; Attention Notices</h6>
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle">CHECK</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>What needs my attention?</strong></div>
+                <p class="small text-secondary mb-2">
+                  Check your Data Completeness Score and read official notifications. Any missing degree fields or pending service entries will be highlighted here.
+                </p>
+                <a href="{{ url_for('teacher.dashboard') }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-house-door me-1"></i>My Dashboard</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #0b6b3a;">2</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">👤 2. My Profile &amp; Identifiers</h6>
+                  <span class="badge bg-info-subtle text-info border border-info-subtle">COMPLETE</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Is my personal information correct?</strong></div>
+                <p class="small text-secondary mb-2">
+                  Verify your CNIC, father name, date of birth, contact number, and school station. Your date of birth is crucial for age precedence seniority tie-breaking.
+                </p>
+                <a href="{{ url_for('teacher.profile') }}" class="btn btn-sm btn-outline-info py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-person me-1"></i>Review Profile</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #0b6b3a;">3</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">🎓 3. Educational &amp; Professional Qualifications</h6>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">COMPLETE</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Are all my degrees complete?</strong></div>
+                <p class="small text-secondary mb-2">
+                  Inspect the "Data Audit &amp; Missing Values" column. Fill any missing subjects, marks, or boards. Ensure professional teaching degrees (B.Ed/ADE) are marked "Yes". You can add new degrees at any time!
+                </p>
+                <a href="{{ url_for('teacher.qualifications') }}" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-mortarboard me-1"></i>My Qualifications</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #0b6b3a;">4</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">🏢 4. Service History &amp; Postings</h6>
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle">VERIFY</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Are my appointment, regularization and postings correct?</strong></div>
+                <p class="small text-secondary mb-2">
+                  Verify your regular appointment date—this determines your seniority length. Once satisfied with personal, educational, and service history, click "Verify My Data".
+                </p>
+                <a href="{{ url_for('teacher.service_history') }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-clock-history me-1"></i>Service History</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 5 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 bg-warning text-dark" style="width: 38px; height: 38px;">5</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">📝 5. Correction Request</h6>
+                  <span class="badge bg-warning-subtle text-dark border border-warning-subtle">CORRECT IF NEEDED</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>I need to change something that is already locked.</strong></div>
+                <p class="small text-secondary mb-2">
+                  After self-verification, records lock to protect data integrity. If a change is needed, tick the box next to the locked cell, write the proposed value, and submit with proof for admin approval.
+                </p>
+                <a href="{{ url_for('teacher.correction_request') }}" class="btn btn-sm btn-outline-warning text-dark py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-question-circle me-1"></i>Correction Portal</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 6 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #0b6b3a;">6</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">📋 6. Official Seniority Status</h6>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">VIEW STATUS</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Where do I stand officially in my district cadre?</strong></div>
+                <p class="small text-secondary mb-2">
+                  Inspect your statutory seniority rank number, regular service length, and position relative to quota zones (Zone 1 Promotion Zone).
+                </p>
+                <a href="{{ url_for('teacher.seniority_view') }}" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-list-ol me-1"></i>View Seniority Roll</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 7 -->
+          <div class="guide-stage-card p-3 shadow-sm">
+            <div class="d-flex align-items-start gap-3">
+              <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background-color: #084926;">7</div>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <h6 class="fw-bold text-dark mb-1">📈 7. Promotion Readiness &amp; Statutory Simulator</h6>
+                  <span class="badge bg-success text-white">PROMOTION AUDIT</span>
+                </div>
+                <div class="small text-muted mb-2">&rarr; <strong>Am I eligible under the 8 statutory conditions?</strong></div>
+                <p class="small text-secondary mb-2">
+                  Audit your promotion readiness across Feeder Cadre, Service Length, Degrees, B.Ed, ACRs, and Disciplinary Checks with clear pass/fail checkmarks, and run the real-time simulator.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                  <a href="{{ url_for('teacher.promotion_readiness') }}" class="btn btn-sm btn-punjab py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-graph-up-arrow me-1"></i>My Promotion Readiness</a>
+                  <a href="{{ url_for('teacher.eligibility_simulator') }}" class="btn btn-sm btn-outline-dark py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-calculator me-1"></i>Promotion Simulator</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="alert alert-success border-success-subtle mt-3 mb-0 text-center small fw-semibold">
+          <i class="bi bi-lightbulb-fill text-warning me-1"></i> Mental Model: CHECK &rarr; COMPLETE &rarr; VERIFY &rarr; CORRECT IF NEEDED &rarr; VIEW STATUS
+        </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer bg-white d-flex justify-content-between py-2 px-4">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openCurrentTabGuide()">
+          <i class="bi bi-question-circle me-1"></i> How to Use Current Tab
+        </button>
+        <button type="button" class="btn btn-punjab btn-sm px-4 fw-semibold" data-bs-dismiss="modal">
+          <i class="bi bi-check2-circle me-1"></i> Got It! Let's Proceed
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     DYNAMIC "HOW TO USE THIS TAB" MODAL FOR EVERY PAGE
+     ====================================================================== -->
+<div class="modal fade" id="tabGuideModal" tabindex="-1" aria-labelledby="tabGuideModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content shadow-lg border-0 overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="modal-header text-white py-3 px-4 border-0" id="tabGuideModalHeader" style="background: linear-gradient(135deg, #0b6b3a 0%, #155724 100%);">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-warning text-dark fw-bold" id="tabGuideStageBadge">TAB GUIDE</span>
+            <span class="text-white-50 small">&bull; School Education Department</span>
+          </div>
+          <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="tabGuideModalLabel">
+            <i class="bi bi-lightbulb-fill text-warning" id="tabGuideIcon"></i>
+            <span id="tabGuideTitle">How to Use This Tab</span>
+          </h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body p-4 bg-light">
+        
+        <!-- Tab Purpose Card -->
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body p-3">
+            <div class="fw-bold text-dark small mb-1"><i class="bi bi-info-circle-fill text-primary me-1"></i> Primary Purpose &amp; Role:</div>
+            <p class="text-secondary small mb-0" id="tabGuidePurpose">
+              Detailed statutory and operational guidelines for this tab.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step-by-Step Instructions Card -->
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-white fw-bold small text-dark py-2">
+            <i class="bi bi-list-check text-success me-1"></i> Step-by-Step Workflow on This Page:
+          </div>
+          <div class="card-body p-3">
+            <ol class="ps-3 mb-0 text-secondary small" id="tabGuideSteps">
+              <li class="mb-2">Follow the on-screen options to navigate and complete records.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Pro Tip & Statutory Rules Card -->
+        <div class="alert alert-warning border-warning-subtle d-flex align-items-start gap-2 mb-0 p-3 small">
+          <i class="bi bi-star-fill text-warning fs-5 flex-shrink-0"></i>
+          <div>
+            <strong>Important Rule &amp; Pro Tip:</strong>
+            <div class="text-dark mt-1" id="tabGuideProTip">
+              Always adhere to SED Service Rules 2014 when maintaining records.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer bg-white d-flex justify-content-between py-2 px-4">
+        <button type="button" class="btn btn-outline-success btn-sm" onclick="openPortalOverviewGuide()">
+          <i class="bi bi-compass me-1"></i> View Full Process Guide
+        </button>
+        <button type="button" class="btn btn-punjab btn-sm px-4 fw-semibold" data-bs-dismiss="modal">
+          <i class="bi bi-check2 me-1"></i> Understood
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Floating Guide Button (Visible on all pages for authenticated users) -->
+<div class="floating-guide-trigger shadow" onclick="openCurrentTabGuide()" title="Click to view How to Use This Tab">
+  <span class="pulse-dot"></span>
+  <i class="bi bi-lightbulb-fill text-warning"></i>
+  <span class="d-none d-sm-inline">How to Use This Tab</span>
+</div>
+<!-- ======================================================================
+     SESSION INACTIVITY & AUTOMATIC LOGOUT WARNING MODAL
+     ====================================================================== -->
+<div class="modal fade" id="sessionTimeoutModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="sessionTimeoutModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-warning bg-opacity-10 border-warning border-opacity-25 py-3">
+        <h5 class="modal-title d-flex align-items-center gap-2 text-warning-emphasis fw-bold" id="sessionTimeoutModalLabel">
+          <i class="bi bi-shield-exclamation fs-4 text-warning"></i> Session Inactivity Notice
+        </h5>
+      </div>
+      <div class="modal-body py-4 text-center">
+        <p class="text-secondary mb-3">
+          For your account security, government civil service portals automatically terminate idle sessions. Your session is about to expire due to inactivity.
+        </p>
+        <div class="p-3 bg-light rounded-3 border d-inline-block px-5 my-2 shadow-sm">
+          <div class="text-uppercase small text-muted fw-bold mb-1">Time Remaining</div>
+          <div id="sessionCountdownDisplay" class="display-5 fw-bold text-danger font-monospace">02:00</div>
+          <div class="small text-muted mt-1"><span id="sessionCountdownSeconds">120</span> seconds before logout</div>
+        </div>
+        <p class="small text-muted mt-3 mb-0">
+          Click <strong>Stay Signed In</strong> to continue your session, or <strong>Log Out Now</strong> to exit safely.
+        </p>
+      </div>
+      <div class="modal-footer bg-light justify-content-between py-2">
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger px-3">
+          <i class="bi bi-box-arrow-right me-1"></i> Log Out Now
+        </a>
+        <button type="button" class="btn btn-punjab px-4" id="staySignedInBtn">
+          <i class="bi bi-arrow-repeat me-1"></i> Stay Signed In
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Bootstrap 5 Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Custom Master Script -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+<!-- Interactive Portal & Tab Guide Engine -->
+<script>
+window.CURRENT_TAB_ENDPOINT = "{{ request.endpoint }}";
+
+const TAB_GUIDES = {
+  // ==========================================
+  // ADMIN & DISTRICT MANAGEMENT ENDPOINTS
+  // ==========================================
+  'admin.dashboard': {
+    title: 'Admin Control Center & Operations Dashboard',
+    icon: 'bi-speedometer2',
+    stage: 'OVERVIEW & WORKFLOW',
+    purpose: 'District operations command center. Features real-time "Work to Do" priority counters, the 9-stage departmental workflow pipeline, and quick shortcuts across all 7 promotion stages.',
+    steps: [
+      'Review "Work to Do" counters: 🔴 Pending Corrections, 🟠 Incomplete Data, 🟡 Age 60+ Retirements, 🔵 DPC Tasks, and 🟢 Promotion Rolls Ready.',
+      'Follow the 9-stage departmental pipeline (Data Prep &rarr; Verification &rarr; Corrections &rarr; Retirement &rarr; Vacancies &rarr; DPC &rarr; Scrutiny &rarr; Gazette &rarr; Decisions).',
+      'Click any stage badge or action shortcut to jump immediately to the corresponding administrative module.'
+    ],
+    proTip: 'Master Mental Model: DATA &rarr; VACANCY &rarr; RETIREMENT &rarr; DPC &rarr; SCRUTINY &rarr; GAZETTE &rarr; DECISION guarantees structured, error-free DPC cycles.'
+  },
+  'admin.teachers_list': {
+    title: 'Teachers Directory & Service Dossiers',
+    icon: 'bi-people',
+    stage: '1. DATA',
+    purpose: 'District-wide registry of all teaching staff. Displays biodata, feeder seniority, verification status, and visual audit badges.',
+    steps: [
+      'Search and filter teachers by designation (PST, EST, SST), district, tehsil, gender, or CNIC.',
+      'Inspect audit cell highlights: Blue cells indicate self-edited teacher records, and Green cells indicate newly added degrees or postings.',
+      'Click any teacher\'s name or Dossier icon to inspect their 360-degree service dossier, qualifications, and promotion readiness.',
+      'Use "Disable for Promotion" with predefined reasons (Retired, Expired/Death, Disciplinary, Deputation) to prevent ineligible promotion.'
+    ],
+    proTip: 'Disabled teachers display official red badges and are automatically excluded from automated DPC scrutiny rolls.'
+  },
+  'admin.teacher_detail': {
+    title: 'Teacher 360-Degree Service Dossier',
+    icon: 'bi-person-badge',
+    stage: '1. DATA DOSSIER',
+    purpose: 'Complete statutory service dossier for an individual teacher, including personal biodata, academic & professional qualifications, service history, and audit log history.',
+    steps: [
+      'Review teacher biodata, date of birth, continuous regular appointment date, and feeder seniority rank.',
+      'Inspect educational degrees, verifying whether statutory professional degrees (B.Ed/ADE) are marked "Yes".',
+      'Review full chronological posting history from initial appointment to current station.',
+      'Download the official Printable Teacher Dossier PDF or click "Verify Teacher Record" to approve credentials.'
+    ],
+    proTip: 'All updates made to this dossier are tracked with timestamp and admin username in the statutory audit log.'
+  },
+  'admin.new_teacher': {
+    title: 'Manual Registration of Teaching Staff',
+    icon: 'bi-person-plus',
+    stage: '1. DATA ONBOARDING',
+    purpose: 'Individually register a new teacher into the district database with statutory service details and default portal credentials.',
+    steps: [
+      'Enter full name, CNIC (13 digits), date of birth, and father/husband name.',
+      'Specify designation (e.g. PST BS-14), district, tehsil, and current posting school.',
+      'Enter initial joining date and regular appointment date (crucial for seniority ranking).',
+      'Submit to create the teacher profile and generate their secure portal login account.'
+    ],
+    proTip: 'For large batches of teachers, use "Bulk Excel Import" rather than manual one-by-one registration.'
+  },
+  'admin.edit_teacher': {
+    title: 'Edit Teacher Service Profile',
+    icon: 'bi-pencil-square',
+    stage: '1. DATA MAINTENANCE',
+    purpose: 'Update or correct core service attributes, school postings, or personal identifiers for an existing teacher.',
+    steps: [
+      'Modify necessary personal, contact, or service fields.',
+      'Verify that CNIC and Date of Birth match the physical Service Book and NADRA CNIC.',
+      'Save changes to commit updates. An audit log entry is generated recording the admin modification.'
+    ],
+    proTip: 'Changing a teacher\'s regular appointment date recalculates their statutory seniority standing in the cadre.'
+  },
+  'admin.data_quality': {
+    title: 'Teacher Data Quality & Integrity Monitor',
+    icon: 'bi-shield-check',
+    stage: '1. DATA QUALITY',
+    purpose: 'High-visibility audit control monitor. Discovers incomplete profiles, missing degrees, unverified records, and age 60+ candidates before promotions are run.',
+    steps: [
+      'Filter data issues by category: Missing Degrees, Missing B.Ed, Unverified Profiles, or Age 60+ Superannuation.',
+      'Inspect flagged teachers and missing field indicators in the interactive summary table.',
+      'Use direct action shortcuts to edit teacher dossiers, request verifications, or review retirements.',
+      'Export the Data Quality Audit Report to guide field staff and headmasters.'
+    ],
+    proTip: 'Resolving data gaps here ensures 100% of eligible teachers are accurately considered in DPC Scrutiny Rolls.'
+  },
+  'admin.excel_import': {
+    title: 'Master Multi-Sheet Bulk Excel Import',
+    icon: 'bi-file-earmark-spreadsheet',
+    stage: '1. DATA IMPORT',
+    purpose: 'Atomic bulk import of teachers biodata and academic qualifications from standardized multi-sheet Excel workbooks.',
+    steps: [
+      'Click "Download Master Template (.xlsx)" featuring pre-formatted "Teachers_Data" and "Qualifications" sheets.',
+      'Populate teacher biodata and degree rows linked by CNIC without altering header column names.',
+      'Upload the spreadsheet to execute the instant pre-flight validation check.',
+      'Inspect new inserts vs existing updates in the preview table, then click "Confirm & Import Records".'
+    ],
+    proTip: 'Upsert technology prevents duplicate entries: existing teachers and degrees are updated in place atomically.'
+  },
+  'admin.bulk_education_import': {
+    title: 'Dedicated Bulk Qualifications Import',
+    icon: 'bi-mortarboard-fill',
+    stage: '1. DATA QUALIFICATIONS',
+    purpose: 'Upload bulk academic and professional qualifications for existing teachers using teacher CNIC as unique foreign key.',
+    steps: [
+      'Download the specialized Bulk Education Template with standardized degree and professional indicator columns.',
+      'Enter multiple qualifications per teacher, ensuring "Is Professional" is set to "Yes" for B.Ed, M.Ed, and ADE.',
+      'Upload to validate CNIC references against active teachers in the district.',
+      'Commit verified qualification records to the database.'
+    ],
+    proTip: 'Accurate degree subjects and professional status are required by the Promotion Scrutiny Engine for promotion criteria.'
+  },
+  'admin.seniority_list': {
+    title: 'Official District Seniority Roll',
+    icon: 'bi-sort-numeric-down',
+    stage: '1. DATA / SENIORITY',
+    purpose: 'Calculates and publishes statutory seniority lists for each cadre following Punjab Civil Servants (Seniority) Rules.',
+    steps: [
+      'Select Cadre / Designation (e.g. PST BS-14, EST Science BS-15, SST Arts BS-16).',
+      'Examine calculated seniority rankings based strictly on continuous regular appointment dates.',
+      'Observe tie-breaking: when regularization dates are identical, older teachers rank senior automatically.',
+      'Click "Recompute Seniority Ranks" if new regularizations were recorded, or export to Official PDF/Excel.'
+    ],
+    proTip: 'Feeder seniority is permanently retained even when a teacher is promoted to a higher cadre.'
+  },
+  'admin.vacancies': {
+    title: 'District Vacancies & Promotion Quotas',
+    icon: 'bi-pie-chart',
+    stage: '2. VACANCY',
+    purpose: 'Define sanctioned posts, working strength, vacant seats, and in-service promotion quota percentages (e.g. 50%).',
+    steps: [
+      'Filter by district and target promotional cadre (e.g. EST Science BS-15, SST BS-16).',
+      'Update Sanctioned Strength and Filled Working Strength as per the latest departmental schedule.',
+      'Verify the statutory Promotion Quota % (e.g. 50% In-Service Promotion vs 50% Initial Recruitment).',
+      'The calculated "Quota Posts" directly establishes the size of Promotion Zone 1 in the DPC Scrutiny Roll.'
+    ],
+    proTip: 'Always verify and update vacancy figures prior to generating DPC lists so candidate zones reflect reality.'
+  },
+  'admin.retirements_review': {
+    title: 'Superannuation (Age 60+) Review & Bulk Retirement',
+    icon: 'bi-clock-history',
+    stage: '3. RETIREMENT',
+    purpose: 'Identifies teachers attaining 60 years of age and provides single-click bulk retirement order generation.',
+    steps: [
+      'Review teachers flagged by the system as attaining 60 years of age based on birth records.',
+      'Select individual teachers or use "Select All" to choose all retiring staff.',
+      'Enter official departmental Retirement Order Number and Order Date.',
+      'Click "Retire Selected Teachers" to update status to Retired and exclude them from in-service promotions.'
+    ],
+    proTip: 'Superannuated teachers are automatically disqualified from promotion under Civil Service Regulations.'
+  },
+  'admin.dpc_schedule': {
+    title: 'DPC Annual Meeting Schedule & Forecasts',
+    icon: 'bi-calendar-event',
+    stage: '4. DPC',
+    purpose: 'Schedule DPC sessions, track evaluation cutoff dates, and analyze cadre-wise retiring counts for each session.',
+    steps: [
+      'Click "Schedule New DPC Meeting" and specify meeting number, title, evaluation cutoff date, end date, and venue.',
+      'Examine dynamic cadre-wise retiring counts calculated under each scheduled meeting date.',
+      'Edit meeting parameters freely before the scheduled end date (system locks editing once the end date passes).',
+      'Download the official DPC Superannuation Retiring Roll PDF for committee members.'
+    ],
+    proTip: 'Meeting cutoff dates set the statutory reference point for candidate service length and retirement exemptions.'
+  },
+  'admin.create_dpc_meeting': {
+    title: 'Schedule New District Promotion Committee (DPC) Session',
+    icon: 'bi-calendar-plus',
+    stage: '4. DPC SETUP',
+    purpose: 'Configure an upcoming DPC session with statutory evaluation cutoff dates and meeting agenda.',
+    steps: [
+      'Enter Meeting Title, Meeting Number (e.g. DPC-2026/01), and scheduled venue.',
+      'Set Evaluation Cutoff Date (used to calculate candidates service length and age).',
+      'Set Scheduled End Date (determines the deadline after which meeting details become read-only).',
+      'Save schedule to activate retiring forecasts and enable promotional scrutiny.'
+    ],
+    proTip: 'Establishing the cutoff date properly ensures all teachers regular service length is calculated to that exact day.'
+  },
+  'admin.edit_dpc_meeting': {
+    title: 'Edit DPC Meeting Parameters',
+    icon: 'bi-calendar-check',
+    stage: '4. DPC MAINTENANCE',
+    purpose: 'Update meeting dates, venue, or title for an upcoming DPC session before its scheduled end date.',
+    steps: [
+      'Review current meeting parameters and update venue or meeting agenda.',
+      'Adjust the evaluation cutoff date or end date as required by administrative notifications.',
+      'Save changes before the scheduled end date passes, after which the record locks for governance integrity.'
+    ],
+    proTip: 'Once a DPC session end date has passed, changes are prohibited to protect official proceedings.'
+  },
+  'admin.promotion_lists': {
+    title: 'Promotion Scrutiny Engine, Pre-Flight & Quota Roll',
+    icon: 'bi-award-fill',
+    stage: '5. SCRUTINY & 7. DECISIONS',
+    purpose: 'Departmental promotion evaluation engine. Runs 9-point Pre-Flight checks, audits 8 statutory conditions, groups candidates into quota zones, and records DPC decisions.',
+    steps: [
+      'Inspect the Promotion Pre-Flight Checklist to verify posts, rules, vacancies, teacher verification, and DPC meetings.',
+      'Select Target Cadre Rule (e.g. PST to EST Science BS-15) and District.',
+      'Review candidates grouped into Zone 1 (Promotion Zone), Zone 2 (Buffer), and Zone 3 (Beyond Quota).',
+      'Inspect 8-point condition breakdown: Feeder Cadre, Service Length, Academic Degrees, Professional B.Ed, ACRs, and Disciplinary Checks.',
+      'Record committee determinations: Promote, Defer, or Supersede, or click "Create Official Promotion Run" to freeze the roll.'
+    ],
+    proTip: 'Promoted teachers automatically receive their new post, higher basic pay scale, and appended promotional seniority rank (max + 1).'
+  },
+  'admin.promotion_assessment': {
+    title: 'Promotion Assessment & Eligibility Scrutiny Matrix',
+    icon: 'bi-check-all',
+    stage: '5. SCRUTINY MATRIX',
+    purpose: 'Deep-dive candidate assessment matrix analyzing each candidate against statutory requirements.',
+    steps: [
+      'Filter candidate list by promotional rule and eligibility status (Eligible vs Ineligible).',
+      'Inspect individual eligibility criteria cards to see why a candidate passed or failed.',
+      'Export detailed scrutiny matrix for DPC committee review.'
+    ],
+    proTip: 'Transparent failure reasons (e.g. B.Ed missing or service short by 4 months) eliminate administrative ambiguity.'
+  },
+  'admin.promotion_runs': {
+    title: 'Official Promotion Scrutiny Runs Archive',
+    icon: 'bi-archive-fill',
+    stage: '5. SCRUTINY ARCHIVE',
+    purpose: 'Permanent administrative archive of frozen promotion runs. Tracks official Run Numbers (e.g. RUN-2026-001), cutoff dates, quota sizes, and lifecycle status.',
+    steps: [
+      'Review historic and active promotion runs across all cadres and districts.',
+      'Inspect run metadata: Run Number, Promotion Rule, Evaluation Cutoff Date, Vacancies, Quota %, and Candidate Count.',
+      'Click "View Scrutiny Roll" to review candidate snapshots and manage the freeze lifecycle (Draft &rarr; Finalized &rarr; Locked).',
+      'Download official signed Scrutiny Roll PDFs with circular stamps and committee signatories.'
+    ],
+    proTip: 'Creating a Promotion Run creates an immutable snapshot of candidate rankings at that exact moment in time.'
+  },
+  'admin.promotion_run_detail': {
+    title: 'Promotion Run Snapshot & Roll Freezing Lifecycle',
+    icon: 'bi-lock-fill',
+    stage: '5. ROLL FREEZING',
+    purpose: 'Review candidate snapshot for an official promotion run and control the statutory freeze lifecycle: Draft &rarr; Finalized &rarr; Locked.',
+    steps: [
+      'Inspect snapshot candidates arranged by Seniority-cum-Fitness into Zones 1, 2, and 3.',
+      'Advance the roll lifecycle: transition from Draft to Finalized for committee presentation.',
+      'Lock the roll (🔒 LOCKED) during DPC proceedings to guarantee zero data alteration.',
+      'If changes are legally mandated after locking, execute an audited "Reopen / Revision" requiring mandatory written justification.'
+    ],
+    proTip: 'Locked rolls cannot be altered without an explicit audit trail recording who reopened it and the administrative grounds.'
+  },
+  'admin.pdf_management': {
+    title: 'PDF Hub, Official Stamps & Signatories',
+    icon: 'bi-stamp',
+    stage: '6. GAZETTE',
+    purpose: 'Configure official circular stamp seals, customize DPC Committee signatories (Chairman, Secretary, Members), and access the Central Downloadable PDFs Hub.',
+    steps: [
+      'Toggle the Official Stamp Seal switch to show or hide high-resolution circular seals on all generated PDF gazettes.',
+      'Add, edit, or remove DPC Committee Signatories with designations (Chairman, Secretary, Committee Member).',
+      'Preview signatures live in the interactive signature preview card.',
+      'Download any official departmental document from the Central Downloadable PDFs Hub.'
+    ],
+    proTip: 'Signatory updates and stamp toggles apply instantly across all newly downloaded official gazettes.'
+  },
+  'admin.verifications': {
+    title: 'Teacher Record Verifications Worklist',
+    icon: 'bi-check2-circle',
+    stage: '1. DATA VERIFICATION',
+    purpose: 'Administrative worklist to audit and verify teacher profiles and qualifications against physical service books.',
+    steps: [
+      'Filter by submission status: Pending Verification vs Verified.',
+      'Cross-check teacher credentials against physical service books and university degrees.',
+      'Click "Verify" to endorse records or "Flag Issue" to request documentary clarification.',
+      'Verified status is a mandatory prerequisite for promotion consideration in the evaluation engine.'
+    ],
+    proTip: 'Once marked Verified, a teacher cannot modify their record without submitting a formal Correction Claim.'
+  },
+  'admin.corrections': {
+    title: 'Correction Requests Review Worklist',
+    icon: 'bi-pencil-square',
+    stage: '1. DATA CORRECTIONS',
+    purpose: 'Review itemized correction claims submitted by teachers whose profiles are locked following self-verification.',
+    steps: [
+      'Review pending correction batches showing teacher name, CNIC, and target fields.',
+      'Compare Current Locked Record vs Proposed New Value side-by-side.',
+      'Inspect teacher-submitted documentary evidence and legal grounds.',
+      'Click "Approve" or "Reject" one-by-one. Approving immediately commits the correction to the database with full audit logging.'
+    ],
+    proTip: 'Strict unique validation ensures teachers cannot submit redundant values identical to existing records.'
+  },
+  'admin.teaching_posts': {
+    title: 'Statutory Teaching Posts Catalog',
+    icon: 'bi-briefcase',
+    stage: 'SETUP & CADRES',
+    purpose: 'Official inventory of teaching cadres, pay scales, feeder ranks, and prescribed statutory qualifications.',
+    steps: [
+      'View teaching cadres across Primary (PST BS-14), Elementary (EST BS-15), Secondary (SST BS-16), and Higher Secondary (BS-17/18).',
+      'Inspect feeder cadre hierarchies and prescribed minimum qualifications.',
+      'Add or modify teaching post definitions to align with updated department service rules.'
+    ],
+    proTip: 'The promotion engine uses these post definitions to automatically link feeder candidates to promotional posts.'
+  },
+  'admin.rules_manager': {
+    title: 'Promotion Rules Explorer & Feeder Channels',
+    icon: 'bi-journal-text',
+    stage: 'STATUTORY RULES',
+    purpose: 'Inspect active statutory promotion rules, quota allocations, feeder posts, and required service lengths.',
+    steps: [
+      'Browse promotion channels from PST to EST, EST to SST, and SST to Headmaster / Subject Specialist.',
+      'Review minimum regular service requirements (e.g. 3 years continuous regular service).',
+      'Verify prescribed degree subjects and mandatory professional qualifications (B.Ed/ADE).'
+    ],
+    proTip: 'Statutory rules are established under Punjab School Education Department Service Rules 2014.'
+  },
+  'admin.reports': {
+    title: 'Departmental Reports & Official Exports Hub',
+    icon: 'bi-file-earmark-pdf',
+    stage: 'REPORTS',
+    purpose: 'Central repository of all analytical departmental reports, seniority rosters, superannuation lists, and promotion gazettes.',
+    steps: [
+      'Select report type: District Seniority List, Age 60+ Superannuation Roster, Vacancy Summary, or DPC Gazette.',
+      'Choose output format: Official Formatted PDF or Data Spreadsheet (Excel).',
+      'Download signed documents ready for administrative notification and committee presentation.'
+    ],
+    proTip: 'All PDF reports automatically feature configured institutional headers, circular seals, and signatories.'
+  },
+
+  // ==========================================
+  // TEACHER PORTAL ENDPOINTS
+  // ==========================================
+  'teacher.dashboard': {
+    title: 'Teacher Dashboard & Attention Center',
+    icon: 'bi-house-door',
+    stage: '1. CHECK',
+    purpose: 'Your personal home base. Displays your Data Completeness Score, action notices, and current seniority status.',
+    steps: [
+      'Review your Data Completeness progress bar and outstanding audit alerts.',
+      'Check if your record status is "Verified" or "Pending Verification".',
+      'Follow notification alerts to complete missing educational or service history records.',
+      'Use quick-access cards to jump directly to Qualifications, Service History, Seniority, or Promotion Readiness.'
+    ],
+    proTip: 'Reaching 100% data completeness ensures you pass all automatic promotion scrutiny filters.'
+  },
+  'teacher.profile': {
+    title: 'My Personal Profile & Identification',
+    icon: 'bi-person',
+    stage: '2. COMPLETE',
+    purpose: 'Review official personal biodata, national identifiers, contact information, and current posting school.',
+    steps: [
+      'Confirm that your CNIC, Personnel No, and Date of Birth match your CNIC and Service Book.',
+      'Ensure your Mobile Number and Email are current for DPC communications.',
+      'Inspect current designation and scale (BS). If incorrect and locked, submit a Correction Request.'
+    ],
+    proTip: 'Your Date of Birth is used for seniority tie-breaking: older candidates rank higher when service dates match.'
+  },
+  'teacher.qualifications': {
+    title: 'Educational & Professional Qualifications Directory',
+    icon: 'bi-mortarboard',
+    stage: '2. COMPLETE & 3. VERIFY',
+    purpose: 'Manage your academic degrees and mandatory professional teaching qualifications (B.Ed / M.Ed / ADE).',
+    steps: [
+      'Inspect the "Data Audit & Missing Values" column: any red missing fields must be filled.',
+      'Click "Edit" on existing unverified degrees to provide missing major subjects, marks, or universities.',
+      'Click "Add New Qualification" to add higher degrees at any time—new additions are always permitted!',
+      'Ensure teaching degrees (B.Ed/ADE) have "Is Professional" set to "Yes".',
+      'Once all degrees are accurate, click "Verify My Complete Data" to lock your record.'
+    ],
+    proTip: 'Professional teaching degrees are strictly mandatory for promotion under Service Rules 2014.'
+  },
+  'teacher.edit_qualification': {
+    title: 'Edit Academic / Professional Degree Record',
+    icon: 'bi-pencil',
+    stage: '2. COMPLETE QUALIFICATIONS',
+    purpose: 'Update marks, passing year, major subjects, or university board for an unverified qualification.',
+    steps: [
+      'Fill in degree level, title, major subjects, total marks, and obtained marks.',
+      'Mark "Is Professional Qualification" as "Yes" if the degree is B.Ed, M.Ed, or ADE.',
+      'Save changes to update your completeness score.'
+    ],
+    proTip: 'If your qualification is already verified and locked, submit a Correction Request with documentary proof.'
+  },
+  'teacher.service_history': {
+    title: 'Service History & School Postings Records',
+    icon: 'bi-clock-history',
+    stage: '2. COMPLETE & 3. VERIFY',
+    purpose: 'Track your career journey from initial appointment to continuous regular service and school transfers.',
+    steps: [
+      'Verify your Continuous Regular Appointment Date—this anchors your seniority and service length calculation.',
+      'Review posting records and fill missing order numbers, dates, or remarks.',
+      'Add any previous school postings using "Add New Service Posting".',
+      'Ensure the active posting matches your current school station.'
+    ],
+    proTip: 'Regularization date is what counts for promotion eligibility; contract tenure prior to regularization is excluded.'
+  },
+  'teacher.add_service_history': {
+    title: 'Add New Service Posting Record',
+    icon: 'bi-plus-circle',
+    stage: '2. COMPLETE SERVICE',
+    purpose: 'Record a new school posting, transfer order, or promotion record in your official service timeline.',
+    steps: [
+      'Enter school name, EMIS code, and posting designation.',
+      'Provide appointment/transfer order number and order date.',
+      'Specify start date and end date (leave blank if this is your active posting).',
+      'Save record to update your verified service dossier.'
+    ],
+    proTip: 'Ensure continuous posting dates without unverified service breaks.'
+  },
+  'teacher.edit_service_history': {
+    title: 'Edit Service Posting Record',
+    icon: 'bi-pencil',
+    stage: '2. COMPLETE SERVICE',
+    purpose: 'Update posting dates, school name, or transfer order numbers for an unverified posting record.',
+    steps: [
+      'Modify order numbers, start dates, or school stations.',
+      'Verify that the active posting matches your current physical school.',
+      'Save changes to update your service record.'
+    ],
+    proTip: 'Keep order numbers and dates consistent with entries in your physical Service Book.'
+  },
+  'teacher.correction_request': {
+    title: 'Categorized Correction Claims Portal',
+    icon: 'bi-question-circle',
+    stage: '4. CORRECT IF NEEDED',
+    purpose: 'Request official corrections to personal data, qualifications, or service records that have been locked after verification.',
+    steps: [
+      'Locate the section (Personal Info, Qualifications, or Service History) containing the error.',
+      'Click the tick checkbox next to the locked cell to enable the proposed correction input.',
+      'Enter the new value (must differ from the current locked value).',
+      'Provide clear legal/factual grounds and attach supporting documentary evidence.',
+      'Submit your claim and track its approval status in the "Submitted Claims" table.'
+    ],
+    proTip: 'Admins review correction claims one-by-one. Once approved, the change is committed directly to your official record.'
+  },
+  'teacher.seniority_view': {
+    title: 'District Cadre Seniority Roll & Status Inspection',
+    icon: 'bi-list-ol',
+    stage: '5. VIEW STATUS',
+    purpose: 'Explore your official seniority ranking among all teachers in your cadre and district.',
+    steps: [
+      'View your official seniority rank number, regular service length, and current station.',
+      'Compare positions across colleagues in your cadre (e.g. PST BS-14, EST Science BS-15).',
+      'Review quota zones: candidates in Zone 1 are positioned within immediate promotion quotas.'
+    ],
+    proTip: 'Seniority lists are updated continuously as promotions, transfers, and retirements occur.'
+  },
+  'teacher.promotion_readiness': {
+    title: 'Statutory Promotion Readiness & 8-Point Criteria Breakdown',
+    icon: 'bi-graph-up-arrow',
+    stage: '5. PROMOTION READINESS',
+    purpose: 'Comprehensive read-only statutory audit. Transparently displays exactly how you meet each of the 8 statutory conditions for upcoming promotion.',
+    steps: [
+      'Select a higher promotional post (e.g. EST Science BS-15 or SST BS-16).',
+      'Review the 8-condition statutory scorecard: Feeder Cadre, Service Length, Academic Degree, Professional B.Ed, Teacher Verification, ACRs, Disciplinary Status, and Superannuation.',
+      'Inspect green checkmarks (Passed) and red crosses (Requirements short or missing).',
+      'Follow recommended remedial action steps to resolve any missing criteria before DPC convening.'
+    ],
+    proTip: 'Transparent statutory auditing eliminates guesswork and lets you prepare credentials in advance.'
+  },
+  'teacher.eligibility_simulator': {
+    title: 'Promotion Eligibility Simulator',
+    icon: 'bi-calculator',
+    stage: '5. VIEW STATUS',
+    purpose: 'Simulate your eligibility for upcoming promotional posts and see exactly what requirements you meet or need.',
+    steps: [
+      'Select any higher promotional cadre (e.g. EST Science BS-15, SST BS-16).',
+      'The simulator evaluates your credentials against the 8 statutory conditions in real-time.',
+      'Review any shortfall alerts (e.g. missing professional B.Ed or service length requirements).'
+    ],
+    proTip: 'Use the simulator to identify and complete missing qualifications well before DPC meetings are convened.'
+  },
+
+  // ==========================================
+  // SUPERADMIN GOVERNANCE ENDPOINTS
+  // ==========================================
+  'superadmin.dashboard': {
+    title: 'SuperAdmin Master Governance Center',
+    icon: 'bi-shield-shaded',
+    stage: 'MASTER GOVERNANCE',
+    purpose: 'Highest level administrative dashboard for statutory rulebook governance, system settings, admin accounts, and audit monitoring.',
+    steps: [
+      'Review global system statistics, admin user activity, and database health.',
+      'Manage statutory Service Rules 2014 and promotion quota notifications.',
+      'Provision and oversee district administrative accounts and manual password dispatch.'
+    ],
+    proTip: 'Only SuperAdministrators can modify statutory promotion quotas and system-wide service rules.'
+  },
+  'superadmin.manage_rules': {
+    title: 'Statutory Service Rules (2014) Manager',
+    icon: 'bi-journal-text',
+    stage: 'STATUTORY RULES',
+    purpose: 'Define and maintain statutory promotion channels, feeder cadres, quota percentages, and minimum service lengths.',
+    steps: [
+      'Select a rule to view or update statutory criteria.',
+      'Configure minimum regular service years, prescribed academic degrees, and required professional teaching qualifications.',
+      'Adjust In-Service Quota % (e.g. 50% for EST/SST) to align with statutory departmental notifications.'
+    ],
+    proTip: 'Any change made here immediately recalibrates the automated Promotion Scrutiny Engine across all districts.'
+  },
+  'superadmin.manage_admins': {
+    title: 'District Administrators Management',
+    icon: 'bi-person-badge',
+    stage: 'SECURITY & ACCESS',
+    purpose: 'Provision, activate, or suspend district administrator accounts and oversee access permissions.',
+    steps: [
+      'Review active and inactive district administrators by assigned district.',
+      'Create new admin accounts with assigned jurisdiction.',
+      'Deactivate accounts or trigger secure password reset dispatches.'
+    ],
+    proTip: 'Limit administrative credentials to authorized District Education Authority (DEA) personnel.'
+  },
+  'superadmin.password_resets': {
+    title: 'Password Reset Requests Dispatch',
+    icon: 'bi-key-fill',
+    stage: 'SECURITY',
+    purpose: 'Review and approve password reset requests submitted by teachers or district administrators.',
+    steps: [
+      'Verify identity of the requester against official CNIC and personnel records.',
+      'Generate temporary one-time password or approved reset token.',
+      'Mark request as Resolved to notify the user.'
+    ],
+    proTip: 'Users are required to change their temporary password immediately upon their next login.'
+  },
+  'superadmin.audit_logs': {
+    title: 'Statutory Civil Service Audit Trail & System Logs',
+    icon: 'bi-activity',
+    stage: 'AUDIT TRAIL',
+    purpose: 'Immutable system audit trail tracking all data alterations, promotion decisions, retirements, and admin actions.',
+    steps: [
+      'Search audit events by user, action type, entity, date range, or IP address.',
+      'Inspect pre-change vs post-change values (e.g. regularization date corrections).',
+      'Export audit logs for external vigilance or departmental inspection.'
+    ],
+    proTip: 'Audit logs cannot be modified or deleted, ensuring complete legal defensibility in civil service proceedings.'
+  },
+  'superadmin.backups': {
+    title: 'Database Backups & Disaster Recovery',
+    icon: 'bi-database-fill-down',
+    stage: 'SYSTEM DISASTER RECOVERY',
+    purpose: 'Generate, download, and manage database snapshots to safeguard portal data.',
+    steps: [
+      'Click "Create Manual Backup Now" to snapshot the entire database.',
+      'Download backup archive (.db/.sql) to secure external storage.',
+      'Review automated backup schedules and retention policies.'
+    ],
+    proTip: 'Always create a database backup prior to executing large DPC cycles or major Excel imports.'
+  },
+  'superadmin.system_settings': {
+    title: 'System Configuration & Branding',
+    icon: 'bi-gear-fill',
+    stage: 'SYSTEM SETTINGS',
+    purpose: 'Configure departmental branding, session inactivity timeout minutes, and global portal parameters.',
+    steps: [
+      'Update application name, departmental title, or contact information.',
+      'Configure session timeout duration (default: 15 minutes) for account security.',
+      'Save configuration to apply changes across all active sessions.'
+    ],
+    proTip: 'Inactivity timeouts protect sensitive teacher dossiers on shared school computer terminals.'
+  },
+  'superadmin.manage_adsense': {
+    title: 'Departmental Notices & Information Banners',
+    icon: 'bi-google',
+    stage: 'COMMUNICATIONS',
+    purpose: 'Manage departmental announcements, awareness banners, or informational placements across the portal.',
+    steps: [
+      'Configure display status (Enable/Disable) and targeting criteria (Admin vs Teacher).',
+      'Set banner placement locations (Top, Sidebar, Footer).',
+      'Save settings to update active portal layouts.'
+    ],
+    proTip: 'Use banners to broadcast upcoming DPC schedule deadlines to teachers across the province.'
+  },
+
+  // ==========================================
+  // AUTHENTICATION & ACCESS ENDPOINTS
+  // ==========================================
+  'auth.login': {
+    title: 'Portal Secure Authentication',
+    icon: 'bi-box-arrow-in-right',
+    stage: 'SECURITY LOGIN',
+    purpose: 'Official entry gateway for Teachers, District Administrators, and SuperAdministrators.',
+    steps: [
+      'Enter your Login Identifier (Username, CNIC with or without dashes, or Personnel Number).',
+      'Enter your secure password.',
+      'Click "Sign In to Portal" to enter your role-specific dashboard.'
+    ],
+    proTip: 'Teachers can sign in directly using their 13-digit CNIC (e.g. 35201-1234567-1 or 3520112345671).'
+  },
+  'auth.register': {
+    title: 'District Administrator Self-Registration',
+    icon: 'bi-person-badge',
+    stage: 'SECURITY',
+    purpose: 'Registration gateway for authorized District Education Authority (DEA) personnel.',
+    steps: [
+      'Provide official full name, government CNIC, official mobile number, and email.',
+      'Select assigned district and enter authorized administrative authorization code.',
+      'Create a strong password and submit for verification.'
+    ],
+    proTip: 'Admin registrations require superadmin approval before account activation.'
+  },
+  'auth.change_password': {
+    title: 'Account Security & Password Management',
+    icon: 'bi-shield-lock',
+    stage: 'SECURITY',
+    purpose: 'Update your portal login password to protect your personal identity and official service records.',
+    steps: [
+      'Enter your current password.',
+      'Create a strong new password (minimum 8 characters, combining uppercase, lowercase, numbers, and symbols).',
+      'Confirm the new password and click "Update Password".'
+    ],
+    proTip: 'Never share your login credentials. All actions on the portal are recorded in statutory audit logs.'
+  },
+  'auth.forgot_password': {
+    title: 'Password Recovery & Verification Claim',
+    icon: 'bi-key',
+    stage: 'SECURITY RECOVERY',
+    purpose: 'Submit a password recovery claim if you have forgotten your portal credentials.',
+    steps: [
+      'Enter your registered CNIC or username.',
+      'Submit the password recovery request to notify your district administrator.',
+      'Once verified by the administrator, receive your temporary password.'
+    ],
+    proTip: 'You will be prompted to set a new password upon logging in with a temporary credential.'
+  }
+};
+
+function openCurrentTabGuide() {
+    var endpoint = window.CURRENT_TAB_ENDPOINT || '';
+    var guide = TAB_GUIDES[endpoint] || {
+        title: 'Section Operational Guide',
+        icon: 'bi-info-circle-fill',
+        stage: 'GUIDE',
+        purpose: 'Official departmental workflow guidelines for this section.',
+        steps: [
+            'Follow the on-screen options to navigate, inspect, and update official records.',
+            'Ensure all dates and statutory criteria conform to SED Service Rules 2014.',
+            'Submit or verify changes using the dedicated action buttons provided.'
+        ],
+        proTip: 'Use the topbar Process Guide to review the overall departmental workflow at any time.'
+    };
+
+    var titleEl = document.getElementById('tabGuideTitle');
+    var stageEl = document.getElementById('tabGuideStageBadge');
+    var purposeEl = document.getElementById('tabGuidePurpose');
+    var proTipEl = document.getElementById('tabGuideProTip');
+    var iconEl = document.getElementById('tabGuideIcon');
+    var stepsEl = document.getElementById('tabGuideSteps');
+
+    if (titleEl) titleEl.innerText = guide.title;
+    if (stageEl) stageEl.innerText = guide.stage || 'TAB GUIDE';
+    if (purposeEl) purposeEl.innerText = guide.purpose;
+    if (proTipEl) proTipEl.innerText = guide.proTip;
+    if (iconEl) iconEl.className = 'bi ' + (guide.icon || 'bi-lightbulb-fill') + ' text-warning';
+
+    if (stepsEl) {
+        stepsEl.innerHTML = '';
+        guide.steps.forEach(function(step) {
+            var li = document.createElement('li');
+            li.className = 'mb-2';
+            li.innerHTML = step;
+            stepsEl.appendChild(li);
+        });
+    }
+
+    var tabModalEl = document.getElementById('tabGuideModal');
+    if (tabModalEl) {
+        var processModalEl = document.getElementById('portalProcessModal');
+        if (processModalEl) {
+            var processModal = bootstrap.Modal.getInstance(processModalEl);
+            if (processModal) processModal.hide();
+        }
+        var tabModal = bootstrap.Modal.getOrCreateInstance(tabModalEl);
+        tabModal.show();
+    }
+}
+
+function openPortalOverviewGuide() {
+    var tabModalEl = document.getElementById('tabGuideModal');
+    if (tabModalEl) {
+        var tabModal = bootstrap.Modal.getInstance(tabModalEl);
+        if (tabModal) tabModal.hide();
+    }
+    var processModalEl = document.getElementById('portalProcessModal');
+    if (processModalEl) {
+        var processModal = bootstrap.Modal.getOrCreateInstance(processModalEl);
+        processModal.show();
+    }
+}
+</script>
+
+{% if current_user and session.pop('show_login_guide', False) %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      openPortalOverviewGuide();
+    }, 400);
+  });
+</script>
+{% endif %}
+
+{% block scripts %}{% endblock %}
+{% block extra_js %}{% endblock %}
+</body>
+</html>
+

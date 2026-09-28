@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Seniority Standing - Teacher Portal{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-list-ol text-success me-2"></i> Official Seniority Standing</h1>
+        <p class="page-subtitle">Your position in the official district seniority roll for {{ teacher.current_designation }} (BS-{{ teacher.current_bs }}).</p>
+      </div>
+      <div>
+        <a href="{{ url_for('admin.download_seniority_pdf', district=teacher.district, designation=teacher.current_designation, bs=teacher.current_bs) }}" class="btn btn-punjab btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Download Cadre Seniority Roll (PDF)
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  
+  <!-- My Standing Card -->
+  <div class="card shadow-sm border-0 mb-4 bg-light">
+    <div class="card-body p-4">
+      <div class="row align-items-center">
+        <div class="col-md-3 text-center border-end">
+          <small class="text-muted text-uppercase fw-bold">Official Rank</small>
+          <div class="display-5 fw-bold text-success">
+            {% if teacher.seniority_no %}
+              #{{ teacher.seniority_no }}
+            {% else %}
+              -
+            {% endif %}
+          </div>
+          <span class="badge bg-success">Active In District</span>
+        </div>
+        <div class="col-md-9 ps-md-4 mt-3 mt-md-0">
+          <h5 class="fw-bold mb-1">{{ teacher.full_name }}</h5>
+          <div class="text-muted small mb-2">Cadre: <strong>{{ teacher.current_designation }} (BS-{{ teacher.current_bs }})</strong> &bull; District: <strong>{{ teacher.district }}</strong></div>
+          <div class="row g-2 small">
+            <div class="col-sm-6"><strong>Regularization Date:</strong> {{ teacher.regularization_date.strftime('%d-%m-%Y') if teacher.regularization_date else 'N/A' }}</div>
+            <div class="col-sm-6"><strong>First Govt Entry:</strong> {{ teacher.appointment_date.strftime('%d-%m-%Y') if teacher.appointment_date else 'N/A' }}</div>
+            <div class="col-sm-6"><strong>Date of Birth:</strong> {{ teacher.date_of_birth.strftime('%d-%m-%Y') if teacher.date_of_birth else 'N/A' }}</div>
+            <div class="col-sm-6"><strong>Seniority Basis:</strong> Continuous service in grade with age tie-breaker</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cohort Table -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white fw-bold">
+      District {{ teacher.district }} &bull; {{ teacher.current_designation }} Seniority List
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit mb-0">
+          <thead>
+            <tr>
+              <th style="width: 14%;">Seniority</th>
+              <th style="width: 34%;">Teacher &amp; Personnel No</th>
+              <th style="width: 26%;">Current School &amp; Tehsil</th>
+              <th style="width: 14%;">Regular Date</th>
+              <th style="width: 12%;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in cohort %}
+            <tr class="{% if t.id == teacher.id %}table-success fw-bold{% endif %}">
+              <td>
+                <span class="badge {% if t.id == teacher.id %}bg-success{% else %}bg-light text-dark border{% endif %} fs-6">
+                  #{{ t.seniority_no or loop.index }}
+                </span>
+                {% if t.id == teacher.id %}<span class="badge bg-primary ms-1">YOU</span>{% endif %}
+              </td>
+              <td>
+                <div class="fw-bold text-dark">{{ t.full_name }}</div>
+                <div class="small text-muted mt-1"><code>{{ t.personnel_no }}</code></div>
+              </td>
+              <td>
+                <div class="fw-semibold text-dark">{{ t.school_name }}</div>
+                <div class="small text-muted mt-1"><i class="bi bi-geo-alt me-1 text-danger"></i>{{ t.tehsil }}</div>
+              </td>
+              <td>
+                <div class="small fw-semibold text-dark">{{ t.regularization_date.strftime('%d-%m-%Y') if t.regularization_date else 'N/A' }}</div>
+              </td>
+              <td>
+                {% if t.verification_status == 'Verified' %}
+                  <span class="badge badge-status-verified">Verified</span>
+                {% else %}
+                  <span class="badge badge-status-pending">{{ t.verification_status }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">No cohort records found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% block title %}{% if teacher %}Edit Teacher - {{ teacher.full_name }}{% else %}Register New Teacher{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-person-fill-gear text-success me-2"></i> {% if teacher %}Edit Official Record: {{ teacher.full_name }}{% else %}Register New Teacher Profile{% endif %}</h1>
+        <p class="page-subtitle">Accurate demographic, appointment, and posting details for service verification.</p>
+      </div>
+      <div>
+        <a href="{{ url_for('admin.teachers_list') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to Directory</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-punjab text-white fw-semibold">
+          <i class="bi bi-file-earmark-person me-2"></i> Official Service Profile Information
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{% if teacher %}{{ url_for('admin.edit_teacher', teacher_id=teacher.id) }}{% else %}{{ url_for('admin.new_teacher') }}{% endif %}">
+            
+            {% if not teacher %}
+            <div class="alert alert-success bg-opacity-10 border-success d-flex align-items-center mb-4 p-3 rounded">
+              <i class="bi bi-shield-lock-fill fs-2 text-success me-3"></i>
+              <div>
+                <strong class="text-success d-block"><i class="bi bi-person-check-fill me-1"></i> Automated Teacher Portal Account Provisioning</strong>
+                <span class="small text-muted">
+                  Upon saving, an official self-service account will automatically be created. The teacher can sign in using <strong>Username: CNIC (13 digits)</strong> and default password: <code class="fw-bold text-dark">Teacher@123</code>. A mandatory security password reset is enforced on initial login.
+                </span>
+              </div>
+            </div>
+            {% endif %}
+
+            <h6 class="fw-bold text-success border-bottom pb-2 mb-3">1. Personal &amp; Demographic Data</h6>
+            <div class="row g-3 mb-4">
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Personnel Number <span class="text-danger">*</span></label>
+                <input type="text" name="personnel_no" class="form-control" value="{{ teacher.personnel_no if teacher else '' }}" placeholder="8-digit Personnel No" required {% if teacher %}readonly{% endif %}>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">CNIC (13 digits) <span class="text-danger">*</span></label>
+                <input type="text" name="cnic" class="form-control" value="{{ teacher.cnic if teacher else '' }}" placeholder="35201-XXXXXXX-X" required {% if teacher %}readonly{% endif %}>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Full Name <span class="text-danger">*</span></label>
+                <input type="text" name="full_name" class="form-control" value="{{ teacher.full_name if teacher else '' }}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Father Name <span class="text-danger">*</span></label>
+                <input type="text" name="father_name" class="form-control" value="{{ teacher.father_name if teacher else '' }}" required>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Gender</label>
+                <select name="gender" class="form-select">
+                  <option value="Male" {% if teacher and teacher.gender == 'Male' %}selected{% endif %}>Male</option>
+                  <option value="Female" {% if teacher and teacher.gender == 'Female' %}selected{% endif %}>Female</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Date of Birth</label>
+                <input type="date" name="date_of_birth" class="form-control" value="{{ teacher.date_of_birth.strftime('%Y-%m-%d') if teacher and teacher.date_of_birth else '' }}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Mobile Number</label>
+                <input type="text" name="mobile" class="form-control" value="{{ teacher.mobile if teacher else '' }}" placeholder="03001234567">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Email</label>
+                <input type="email" name="email" class="form-control" value="{{ teacher.email if teacher else '' }}" placeholder="teacher@school.edu.pk">
+              </div>
+            </div>
+
+            <h6 class="fw-bold text-success border-bottom pb-2 mb-3">2. Posting &amp; School Deployment</h6>
+            <div class="row g-3 mb-4">
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">District <span class="text-danger">*</span></label>
+                <input type="text" name="district" list="punjab_districts_list" class="form-control" value="{{ teacher.district if teacher else 'Lahore' }}" placeholder="Select or type district" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Tehsil <span class="text-danger">*</span></label>
+                <input type="text" name="tehsil" class="form-control" value="{{ teacher.tehsil if teacher else 'Model Town' }}" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">School Name <span class="text-danger">*</span></label>
+                <input type="text" name="school_name" class="form-control" value="{{ teacher.school_name if teacher else '' }}" placeholder="Govt High School..." required>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-semibold">EMIS Code</label>
+                <input type="text" name="school_emis_code" class="form-control" value="{{ teacher.school_emis_code if teacher else '' }}" placeholder="35210101">
+              </div>
+            </div>
+
+            <h6 class="fw-bold text-success border-bottom pb-2 mb-3">3. Current Cadre, Pay Scale &amp; Dates</h6>
+            <div class="row g-3 mb-4">
+              <div class="col-md-5">
+                <label class="form-label small fw-semibold">Current Official Designation <span class="text-danger">*</span></label>
+                <select name="current_designation" id="current_designation" class="form-select" required onchange="handleDesignationChange(this)">
+                  <option value="">-- Select Predefined Teaching Post --</option>
+                  {% set current_val = teacher.current_designation if teacher else '' %}
+                  {% for cadre, posts in active_teaching_posts|groupby('cadre') %}
+                    <optgroup label="{{ cadre }}">
+                      {% for p in posts %}
+                        <option value="{{ p.post_title }}" 
+                                data-scale="{{ p.basic_scale }}" 
+                                data-category="{{ p.category }}"
+                                {% if current_val == p.post_title or current_val == p.post_code %}selected{% endif %}>
+                          {{ p.post_title }} (BS-{{ p.basic_scale }})
+                        </option>
+                      {% endfor %}
+                    </optgroup>
+                  {% endfor %}
+                  {% if current_val and current_val not in active_teaching_posts|map(attribute='post_title')|list %}
+                    <optgroup label="Other / Existing Record">
+                      <option value="{{ current_val }}" selected>{{ current_val }}</option>
+                    </optgroup>
+                  {% endif %}
+                </select>
+                <div class="form-text small"><a href="{{ url_for('admin.teaching_posts') }}" target="_blank"><i class="bi bi-gear-fill me-1"></i>Manage / Add Predefined Posts</a></div>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-semibold">Basic Scale (BS) <span class="text-danger">*</span></label>
+                <select name="current_bs" id="current_bs" class="form-select" required>
+                  {% for scale in [12, 14, 15, 16, 17, 18, 19, 20] %}
+                    <option value="{{ scale }}" {% if teacher and teacher.current_bs == scale %}selected{% endif %}>BS-{{ scale }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-semibold">Subject Category</label>
+                <input type="text" name="current_category" id="current_category" class="form-control" value="{{ teacher.current_category if teacher else 'General' }}" placeholder="Science, Arts, General">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Official Seniority Rank</label>
+                <input type="number" name="seniority_no" class="form-control" value="{{ teacher.seniority_no if teacher and teacher.seniority_no else '' }}" placeholder="Assigned Rank">
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">First Govt Entry Date <span class="text-danger">*</span></label>
+                <input type="date" name="appointment_date" class="form-control" value="{{ teacher.appointment_date.strftime('%Y-%m-%d') if teacher and teacher.appointment_date else '' }}" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">Regularization Date</label>
+                <input type="date" name="regularization_date" class="form-control" value="{{ teacher.regularization_date.strftime('%Y-%m-%d') if teacher and teacher.regularization_date else '' }}">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">Average ACR / PER Score (%)</label>
+                <input type="number" step="0.5" name="acr_score_average" class="form-control" value="{{ teacher.acr_score_average if teacher else 80.0 }}">
+              </div>
+            </div>
+
+            {% if teacher %}
+            <div class="mb-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="disciplinary_inquiry_pending" id="inquiryCheck" {% if teacher.disciplinary_inquiry_pending %}checked{% endif %}>
+                <label class="form-check-label fw-semibold text-danger" for="inquiryCheck">
+                  Formal Disciplinary Proceedings / Inquiry Pending (PEEDA Act 2006)
+                </label>
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="text-end border-top pt-3">
+              <a href="{{ url_for('admin.teachers_list') }}" class="btn btn-secondary me-2">Cancel</a>
+              <button type="submit" class="btn btn-punjab px-4 fw-semibold">
+                <i class="bi bi-check-circle me-1"></i> {% if teacher %}Save Changes{% else %}Register Teacher{% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Datalist: Standard Punjab Districts -->
+<datalist id="punjab_districts_list">
+  {% for d in punjab_districts %}
+    <option value="{{ d }}">
+  {% endfor %}
+</datalist>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleDesignationChange(selectElement) {
+  const selectedOption = selectElement.options[selectElement.selectedIndex];
+  if (!selectedOption || !selectedOption.dataset) return;
+
+  const scale = selectedOption.dataset.scale;
+  const category = selectedOption.dataset.category;
+
+  if (scale) {
+    const scaleSelect = document.getElementById('current_bs');
+    if (scaleSelect) {
+      scaleSelect.value = scale;
+    }
+  }
+  if (category) {
+    const catInput = document.getElementById('current_category');
+    if (catInput) {
+      catInput.value = category;
+    }
+  }
+}
+</script>
+{% endblock %}

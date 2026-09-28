@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}Manage District Administrators - Provincial Administration{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-person-badge text-success me-2"></i> Department Administrators</h1>
+        <p class="page-subtitle">Provincial administration control over district and departmental authorized operators.</p>
+      </div>
+      <div>
+        <button class="btn btn-punjab btn-sm" data-bs-toggle="modal" data-bs-target="#newAdminModal">
+          <i class="bi bi-person-plus me-1"></i> Create Administrator
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="fw-bold">Active Administrators Directory</span>
+      <input type="text" id="tableFilterInput" class="form-control form-control-sm w-auto" placeholder="Filter administrators...">
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit filterable-table mb-0">
+          <thead>
+            <tr>
+              <th style="width: 32%;">Administrator Identity</th>
+              <th style="width: 26%;">Contact Details</th>
+              <th style="width: 22%;">Status &amp; Security</th>
+              <th style="width: 20%;" class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in admins %}
+            <tr>
+              <td>
+                <div class="fw-bold text-dark">{{ a.full_name }}</div>
+                <div class="d-flex align-items-center gap-1 mt-1 small">
+                  <code>{{ a.username }}</code>
+                  <span class="badge bg-light text-dark border">{{ a.district or 'All Punjab' }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="small text-dark"><i class="bi bi-envelope me-1 text-muted"></i>{{ a.email or 'N/A' }}</div>
+                {% if a.phone %}
+                  <div class="small text-muted mt-1"><i class="bi bi-telephone me-1"></i>{{ a.phone }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <div>
+                  {% if a.is_active %}
+                    <span class="badge bg-success">Active</span>
+                  {% else %}
+                    <span class="badge bg-danger">Deactivated</span>
+                  {% endif %}
+                </div>
+                <div class="small text-muted mt-1">
+                  <i class="bi bi-clock-history me-1"></i>{{ a.last_login.strftime('%d-%m-%Y %H:%M') if a.last_login else 'Never logged in' }}
+                </div>
+              </td>
+              <td class="text-center">
+                <div class="btn-group btn-group-sm">
+                  <!-- Toggle Status Form -->
+                  <form method="POST" action="{{ url_for('superadmin.manage_admins') }}" class="d-inline">
+                    <input type="hidden" name="action" value="toggle_status">
+                    <input type="hidden" name="admin_id" value="{{ a.id }}">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="Toggle Active Status">
+                      <i class="bi bi-power"></i>
+                    </button>
+                  </form>
+                  <!-- Reset Password Modal Trigger -->
+                  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#resetPassModal{{ a.id }}" title="Reset Password">
+                    <i class="bi bi-key"></i>
+                  </button>
+                </div>
+
+                <!-- Reset Password Modal -->
+                <div class="modal fade" id="resetPassModal{{ a.id }}" tabindex="-1">
+                  <div class="modal-dialog">
+                    <div class="modal-content text-start">
+                      <form method="POST" action="{{ url_for('superadmin.manage_admins') }}">
+                        <input type="hidden" name="action" value="reset_password">
+                        <input type="hidden" name="admin_id" value="{{ a.id }}">
+                        <div class="modal-header">
+                          <h6 class="modal-title fw-bold">Reset Password: {{ a.username }}</h6>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                          <label class="form-label small fw-semibold">New Password</label>
+                          <input type="password" name="new_password" class="form-control" required placeholder="Enter new password">
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                          <button type="submit" class="btn btn-sm btn-primary">Update Password</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No administrators configured. Click "Create Administrator" to add one.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Admin Modal -->
+<div class="modal fade" id="newAdminModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('superadmin.manage_admins') }}">
+        <input type="hidden" name="action" value="create">
+        <div class="modal-header bg-punjab text-white">
+          <h6 class="modal-title fw-bold"><i class="bi bi-person-plus me-1"></i> Add Department Administrator</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Username <span class="text-danger">*</span></label>
+            <input type="text" name="username" class="form-control" required placeholder="e.g. admin_multan">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Full Name / Designation <span class="text-danger">*</span></label>
+            <input type="text" name="full_name" class="form-control" required placeholder="e.g. Muhammad Aslam (DEO SE Multan)">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Assigned District</label>
+            <input type="text" name="district" class="form-control" placeholder="e.g. Multan">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Email</label>
+              <input type="email" name="email" class="form-control" placeholder="admin@sed.punjab.gov.pk">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Phone / Mobile</label>
+              <input type="text" name="phone" class="form-control" placeholder="03001234567">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Initial Password <span class="text-danger">*</span></label>
+            <input type="password" name="password" class="form-control" required placeholder="Minimum 6 characters">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-punjab">Save Administrator</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

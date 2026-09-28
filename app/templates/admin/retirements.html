@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Superannuation &amp; Bulk Retirement Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+  
+  <!-- Breadcrumb & Title -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1 small">
+          <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+          <li class="breadcrumb-item active">Superannuation &amp; Retirements</li>
+        </ol>
+      </nav>
+      <h3 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history text-danger"></i>
+        <span>Statutory Superannuation (Age 60+) Review</span>
+      </h3>
+      <p class="text-muted small mb-0">
+        Teachers aged 60 years or above are statutorily exempted from promotion consideration under Punjab Civil Servants Act 1974 Section 12.
+      </p>
+    </div>
+    <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+      <a href="{{ url_for('admin.download_all_retiring_pdf', district=district_filter) }}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
+        <i class="bi bi-file-earmark-pdf-fill"></i> Download Retiring Roll PDF
+      </a>
+      <a href="{{ url_for('admin.dpc_schedule') }}" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1">
+        <i class="bi bi-calendar-event"></i> DPC Meeting Schedule
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+        <div class="card-body p-3">
+          <div class="text-muted small fw-semibold text-uppercase">Total Superannuated (60+)</div>
+          <div class="d-flex align-items-baseline justify-content-between mt-1">
+            <h2 class="fw-bold mb-0 text-dark">{{ total_60_plus }}</h2>
+            <span class="badge bg-danger-subtle text-danger fs-6 px-2 py-1"><i class="bi bi-people-fill"></i></span>
+          </div>
+          <div class="text-muted small mt-1">Attained age 60 limit</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+        <div class="card-body p-3">
+          <div class="text-muted small fw-semibold text-uppercase">Pending Formal Orders</div>
+          <div class="d-flex align-items-baseline justify-content-between mt-1">
+            <h2 class="fw-bold mb-0 text-warning">{{ pending_order_count }}</h2>
+            <span class="badge bg-warning-subtle text-warning fs-6 px-2 py-1"><i class="bi bi-exclamation-triangle-fill"></i></span>
+          </div>
+          <div class="text-muted small mt-1">Awaiting bulk order mark</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+        <div class="card-body p-3">
+          <div class="text-muted small fw-semibold text-uppercase">Formally Retired</div>
+          <div class="d-flex align-items-baseline justify-content-between mt-1">
+            <h2 class="fw-bold mb-0 text-success">{{ retired_count }}</h2>
+            <span class="badge bg-success-subtle text-success fs-6 px-2 py-1"><i class="bi bi-check-circle-fill"></i></span>
+          </div>
+          <div class="text-muted small mt-1">Account marked Retired</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+        <div class="card-body p-3">
+          <div class="text-muted small fw-semibold text-uppercase">Cadre Breakdown</div>
+          <div class="d-flex flex-wrap gap-1 mt-2">
+            {% for c_name, c_cnt in cadre_counts.items() %}
+              <span class="badge bg-secondary-subtle text-dark border px-2 py-1 small">
+                <b>{{ c_name }}:</b> {{ c_cnt }}
+              </span>
+            {% else %}
+              <span class="text-muted small">No 60+ teachers recorded</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters & Bulk Action Form Container -->
+  <form id="bulkRetireForm" method="POST" action="{{ url_for('admin.bulk_retire') }}">
+    
+    <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">
+      <div class="card-body p-3">
+        <div class="row g-2 align-items-center">
+          
+          <!-- Search & Filter Controls -->
+          <div class="col-12 col-md-4">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control bg-light border-start-0" id="filterSearch" placeholder="Search teacher name, CNIC, school..." value="{{ search_query }}" onkeyup="filterRetireesTable()">
+            </div>
+          </div>
+
+          <div class="col-6 col-md-3">
+            <select class="form-select form-select-sm bg-light" id="filterStatus" onchange="applyFilters()">
+              <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All 60+ Teachers</option>
+              <option value="pending_order" {% if status_filter == 'pending_order' %}selected{% endif %}>Pending Formal Order Only</option>
+              <option value="retired" {% if status_filter == 'retired' %}selected{% endif %}>Officially Retired Only</option>
+            </select>
+          </div>
+
+          <div class="col-6 col-md-3">
+            <select class="form-select form-select-sm bg-light" id="filterDistrict" onchange="applyFilters()">
+              <option value="">All Punjab Districts</option>
+              {% for d in punjab_districts %}
+                <option value="{{ d }}" {% if district_filter == d %}selected{% endif %}>{{ d }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Bulk Action Trigger Button -->
+          <div class="col-12 col-md-2 text-md-end">
+            <button type="button" class="btn btn-sm btn-danger w-100 d-inline-flex align-items-center justify-content-center gap-1 shadow-sm" id="btnOpenBulkModal" data-bs-toggle="modal" data-bs-target="#bulkRetireModal" disabled>
+              <i class="bi bi-person-x-fill"></i>
+              <span>Mark Retired (<span id="selectedCountBadge">0</span>)</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Review Table -->
+    <div class="card border-0 shadow-sm rounded-3 bg-white">
+      <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom">
+        <div class="d-flex align-items-center gap-2">
+          <input type="checkbox" class="form-check-input mt-0" id="selectAllCheckbox" onchange="toggleSelectAll(this)" title="Select / Deselect All Eligible 60+ Teachers">
+          <label for="selectAllCheckbox" class="fw-bold small mb-0 text-dark cursor-pointer">Select All (60+ Pending Order)</label>
+        </div>
+        <div class="small text-muted">
+          Showing <span class="fw-bold text-dark">{{ teachers|length }}</span> teachers
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-striped table-institutional table-full-fit align-middle mb-0" id="retireesTable" style="font-size: 0.88rem;">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 40px;" class="text-center">Select</th>
+              <th style="width: 50px;">Sr.#</th>
+              <th>Teacher Profile</th>
+              <th>CNIC / Personnel No</th>
+              <th>Cadre &amp; BS</th>
+              <th>School &amp; District</th>
+              <th>Date of Birth</th>
+              <th class="text-center">Age</th>
+              <th>Superannuation Date</th>
+              <th>Retirement Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in teachers %}
+            {% set is_already_retired = (t.account_status == 'Retired') %}
+            <tr class="{% if is_already_retired %}table-secondary opacity-75{% endif %}">
+              <td class="text-center">
+                <input type="checkbox" name="teacher_ids" value="{{ t.id }}" class="form-check-input row-checkbox" {% if is_already_retired %}disabled title="Teacher is already marked as Retired"{% endif %} onchange="updateSelectedCount()">
+              </td>
+              <td><span class="text-muted fw-semibold">#{{ loop.index }}</span></td>
+              <td>
+                <div class="fw-bold text-dark">{{ t.full_name }}</div>
+                <div class="small text-muted">S/O {{ t.father_name }}</div>
+              </td>
+              <td>
+                <div class="font-monospace small fw-bold">{{ t.cnic }}</div>
+                <div class="small text-muted">{{ t.personnel_no }}</div>
+              </td>
+              <td>
+                <span class="badge bg-secondary-subtle text-dark border">{{ t.current_designation }}</span>
+                <span class="badge bg-light text-muted border">BS-{{ t.current_bs }}</span>
+              </td>
+              <td>
+                <div class="text-truncate" style="max-width: 220px;" title="{{ t.school_name }}">{{ t.school_name }}</div>
+                <div class="small text-muted">{{ t.tehsil }}, {{ t.district }}</div>
+              </td>
+              <td>{{ t.date_of_birth.strftime('%d-%m-%Y') if t.date_of_birth else 'N/A' }}</td>
+              <td class="text-center">
+                <span class="badge {% if t.age >= 60 %}bg-danger text-white{% else %}bg-warning text-dark{% endif %} px-2 py-1 fs-7">
+                  {{ t.age }} yrs
+                </span>
+              </td>
+              <td>
+                <span class="fw-semibold text-danger">
+                  {{ t.superannuation_date.strftime('%d-%m-%Y') if t.superannuation_date else 'N/A' }}
+                </span>
+              </td>
+              <td>
+                {% if is_already_retired %}
+                  <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
+                    <i class="bi bi-check-circle-fill"></i> Officially Retired
+                  </span>
+                  {% if t.retirement_order_no %}
+                    <div class="small text-muted mt-1 font-monospace">{{ t.retirement_order_no }}</div>
+                  {% endif %}
+                {% else %}
+                  <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1">
+                    <i class="bi bi-clock-history"></i> Pending Order
+                  </span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <a href="{{ url_for('admin.teacher_detail', teacher_id=t.id) }}" class="btn btn-outline-secondary" title="View Official Dossier">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <a href="{{ url_for('admin.teacher_dossier_pdf', teacher_id=t.id) }}" class="btn btn-outline-danger" title="Download PDF Dossier">
+                    <i class="bi bi-file-pdf"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="11" class="text-center py-4 text-muted">
+                <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                No teachers found matching superannuation age limit or filter criteria.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bulk Retirement Order Modal -->
+    <div class="modal fade" id="bulkRetireModal" tabindex="-1" aria-labelledby="bulkRetireModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header bg-danger text-white py-2">
+            <h5 class="modal-title fs-6 fw-bold" id="bulkRetireModalLabel">
+              <i class="bi bi-shield-slash me-2"></i> Confirm Bulk Superannuation / Retirement
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3">
+            <div class="alert alert-warning py-2 small mb-3">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              You are about to mark <b><span id="modalSelectedCount">0</span> selected teachers</b> as <b>Officially Retired</b>.
+              Their promotion eligibility will be automatically disabled under reason <i>'Superannuation / Retired'</i>, and their user accounts will be archived.
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-dark">Retirement Order Number <span class="text-danger">*</span></label>
+              <input type="text" name="order_no" class="form-control form-control-sm" placeholder="e.g. SED/SO(SE-III)/RET-2026/042" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-dark">Retirement Order Date <span class="text-danger">*</span></label>
+              <input type="date" name="order_date" class="form-control form-control-sm" value="{{ current_date or '2026-09-27' }}" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-dark">Statutory Remarks / Gazette Reference</label>
+              <textarea name="remarks" class="form-control form-control-sm" rows="2" placeholder="e.g. Retired from government service on attaining the age of superannuation (60 years) in accordance with Punjab Civil Servants Act 1974 Section 12."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer bg-light py-2">
+            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-sm btn-danger px-3">
+              <i class="bi bi-check2-circle me-1"></i> Confirm &amp; Process Bulk Retirement
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </form>
+
+</div>
+
+<script>
+function toggleSelectAll(master) {
+  const checkboxes = document.querySelectorAll('.row-checkbox:not(:disabled)');
+  checkboxes.forEach(cb => cb.checked = master.checked);
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  const checked = document.querySelectorAll('.row-checkbox:checked');
+  const count = checked.length;
+  document.getElementById('selectedCountBadge').innerText = count;
+  document.getElementById('modalSelectedCount').innerText = count;
+  document.getElementById('btnOpenBulkModal').disabled = (count === 0);
+}
+
+function applyFilters() {
+  const status = document.getElementById('filterStatus').value;
+  const district = document.getElementById('filterDistrict').value;
+  const search = document.getElementById('filterSearch').value;
+  let url = new URL(window.location.href);
+  url.searchParams.set('status', status);
+  if (district) url.searchParams.set('district', district);
+  else url.searchParams.delete('district');
+  if (search) url.searchParams.set('q', search);
+  else url.searchParams.delete('q');
+  window.location.href = url.toString();
+}
+
+function filterRetireesTable() {
+  const query = document.getElementById('filterSearch').value.toLowerCase();
+  const rows = document.querySelectorAll('#retireesTable tbody tr');
+  rows.forEach(r => {
+    const text = r.innerText.toLowerCase();
+    r.style.display = text.includes(query) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

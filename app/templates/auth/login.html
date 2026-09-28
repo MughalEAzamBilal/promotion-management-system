@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Sign In - School Education Department{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+      
+      <div class="text-center mb-4">
+        <span class="gov-logo-badge fs-5 px-3 py-2 mb-2 d-inline-block shadow-sm">SCHOOL EDUCATION DEPARTMENT</span>
+        <h3 class="fw-bold mt-2" style="color: var(--punjab-dark);">Teacher Service & Seniority Portal</h3>
+        <p class="text-muted small">Promotion Eligibility & Verification System</p>
+      </div>
+
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-punjab text-white text-center py-3">
+          <h5 class="mb-0 fw-semibold"><i class="bi bi-shield-lock me-2"></i> Authorized Portal Access</h5>
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('auth.login') }}">
+            
+            <div class="mb-3">
+              <label class="form-label fw-semibold text-secondary">Username / CNIC / Personnel No</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-fill text-muted"></i></span>
+                <input type="text" name="login_id" class="form-control border-start-0" placeholder="e.g. superadmin, admin_lahore, or 35201-1234567-1" required autofocus>
+              </div>
+              <small class="form-text text-muted">Teachers can log in directly using their 13-digit CNIC.</small>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label fw-semibold text-secondary mb-0">Password</label>
+                <a href="{{ url_for('auth.forgot_password') }}" class="small text-decoration-none text-warning fw-semibold">
+                  <i class="bi bi-question-circle me-1"></i> Forgot Password?
+                </a>
+              </div>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key-fill text-muted"></i></span>
+                <input type="password" name="password" class="form-control border-start-0" placeholder="Enter secure password" required>
+              </div>
+            </div>
+
+            <div class="d-grid mb-3">
+              <button type="submit" class="btn btn-punjab py-2 fw-semibold">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Portal
+              </button>
+            </div>
+
+            <div class="text-center pt-2 border-top small">
+              <span class="text-muted">Need to manage a district?</span>
+              <a href="{{ url_for('auth.register') }}" class="text-decoration-none fw-bold text-success ms-1">
+                <i class="bi bi-person-plus me-1"></i> Register as Admin &rarr;
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

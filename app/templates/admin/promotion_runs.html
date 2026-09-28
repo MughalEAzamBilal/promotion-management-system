@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block title %}Official Promotion Runs &amp; Frozen Rolls{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <h1 class="page-title mb-0"><i class="bi bi-journal-bookmark text-success me-2"></i> Official Promotion Runs &amp; Rolls</h1>
+          <span class="badge bg-success-subtle text-success border border-success px-2 py-1">Permanent Audit History</span>
+        </div>
+        <p class="page-subtitle mt-1">
+          Archived DPC scrutiny rolls with full parameter snapshots and statutory freeze lifecycle: <code>Draft &rarr; Finalized &rarr; 🔒 Locked</code>.
+        </p>
+      </div>
+      <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="{{ url_for('admin.promotion_lists') }}" class="btn btn-punjab btn-sm">
+          <i class="bi bi-play-circle me-1"></i> New Scrutiny Engine &amp; Pre-Flight
+        </a>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+
+  <!-- Filter Bar -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+      <form method="GET" action="{{ url_for('admin.promotion_runs') }}" class="row g-2 align-items-center">
+        <div class="col-md-4">
+          <label class="small text-muted fw-bold mb-1">Filter by District</label>
+          <select name="district" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">-- All Districts --</option>
+            {% for d in districts %}
+              <option value="{{ d }}" {% if district_filter == d %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="small text-muted fw-bold mb-1">Filter by Roll Lifecycle Status</label>
+          <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">-- All Statuses --</option>
+            <option value="Draft" {% if status_filter == 'Draft' %}selected{% endif %}>Draft (In Review)</option>
+            <option value="Finalized" {% if status_filter == 'Finalized' %}selected{% endif %}>Finalized (DPC Ready)</option>
+            <option value="Locked" {% if status_filter == 'Locked' %}selected{% endif %}>🔒 Locked (Official &amp; Sealed)</option>
+          </select>
+        </div>
+
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+          <span class="badge bg-light text-dark border px-3 py-2 small">
+            Total Official Runs: <strong>{{ runs|length }}</strong>
+          </span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Promotion Runs Table -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0 fw-bold">
+        <i class="bi bi-clock-history text-primary me-2"></i>Departmental Promotion Committee Run Archive
+      </h5>
+      <span class="small text-muted">Statutory Records &bull; Immutable Snapshots</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 130px;">Run Number</th>
+            <th style="width: 240px;">Promotion Channel / Target Cadre</th>
+            <th style="width: 120px;">District</th>
+            <th style="width: 120px;">Cutoff Date</th>
+            <th style="width: 140px;">Vacancies &amp; Quota</th>
+            <th style="width: 130px;">Candidates Pool</th>
+            <th style="width: 120px;">Roll Status</th>
+            <th style="width: 180px;" class="text-end">Official Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in runs %}
+          <tr>
+            <td>
+              <strong class="text-primary fs-6">{{ r.run_no }}</strong>
+              <div class="small text-muted" style="font-size: 0.75rem;">
+                {{ r.run_date.strftime('%d-%b-%Y') if r.run_date else '' }}
+              </div>
+            </td>
+            <td>
+              <div class="fw-bold text-dark">{{ r.target_designation }} (BS-{{ r.target_bs }})</div>
+              <div class="small text-muted">{{ r.rule.rule_name if r.rule else r.rule_id }}</div>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ r.district }}</span>
+            </td>
+            <td>
+              <span class="small fw-semibold text-dark">{{ r.cutoff_date.strftime('%d-%m-%Y') if r.cutoff_date else 'N/A' }}</span>
+            </td>
+            <td>
+              <div class="small">
+                <strong>{{ r.vacant_posts }}</strong> Vacancies &bull; Quota: <strong>{{ r.quota_percent }}%</strong>
+              </div>
+              <div class="small text-muted">{{ r.quota_posts }} Quota Posts</div>
+            </td>
+            <td>
+              <div class="small">
+                <strong>{{ r.total_candidates }}</strong> total candidates
+              </div>
+              <div class="small text-success fw-bold">
+                <i class="bi bi-check-circle me-1"></i>{{ r.eligible_count }} eligible
+              </div>
+            </td>
+            <td>
+              {% if r.status == 'Locked' %}
+                <span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1 fw-bold">
+                  <i class="bi bi-lock-fill me-1"></i>Locked
+                </span>
+              {% elif r.status == 'Finalized' %}
+                <span class="badge bg-info-subtle text-info-emphasis border border-info px-2 py-1 fw-bold">
+                  <i class="bi bi-check2-circle me-1"></i>Finalized
+                </span>
+              {% else %}
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-2 py-1 fw-bold">
+                  <i class="bi bi-pencil me-1"></i>Draft
+                </span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('admin.promotion_run_detail', run_id=r.id) }}" class="btn btn-outline-primary" title="View Roll Snapshot">
+                  <i class="bi bi-eye me-1"></i>View Roll
+                </a>
+                <a href="{{ url_for('admin.download_promotion_run_pdf', run_id=r.id) }}" class="btn btn-outline-danger" title="Download Official PDF Roll">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary"></i>
+              <h6>No Promotion Runs Generated Yet</h6>
+              <p class="small text-secondary mb-3">Run the statutory Promotion Scrutiny Engine and pre-flight checklist to generate an official run.</p>
+              <a href="{{ url_for('admin.promotion_lists') }}" class="btn btn-punjab btn-sm">
+                <i class="bi bi-play-circle me-1"></i> Go to Promotion Scrutiny
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-footer bg-light py-3 px-4 d-flex justify-content-between align-items-center">
+      <small class="text-muted">
+        Locked rolls are sealed against modifications. Any revision requires an explicit departmental reopening justification.
+      </small>
+      <a href="{{ url_for('admin.promotion_lists') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-play-circle me-1"></i> Live Scrutiny Runner
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

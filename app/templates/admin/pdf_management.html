@@ -1,0 +1,583 @@
+{% extends "base.html" %}
+
+{% block title %}PDF Authority Stamps, Headers &amp; Central Downloads Hub{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+
+  <!-- Breadcrumb & Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1 small">
+          <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+          <li class="breadcrumb-item active">PDF Stamps &amp; Downloads Hub</li>
+        </ol>
+      </nav>
+      <h3 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+        <i class="bi bi-file-earmark-check-fill text-primary"></i>
+        <span>PDF Authority Stamps &amp; Central Downloads Hub</span>
+      </h3>
+      <p class="text-muted small mb-0">
+        Customize official departmental headers, authority signature signatories, and stamp seals reflected across all generated PDFs. Download all project reports from one centralized registry.
+      </p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <ul class="nav nav-pills mb-3 gap-2" id="pdfTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active fw-semibold d-inline-flex align-items-center gap-2" id="stamps-tab" data-bs-toggle="tab" data-bs-target="#stamps-pane" type="button" role="tab">
+        <i class="bi bi-shield-check"></i>
+        <span>Authority Stamps &amp; Header Settings</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link fw-semibold d-inline-flex align-items-center gap-2" id="hub-tab" data-bs-toggle="tab" data-bs-target="#hub-pane" type="button" role="tab">
+        <i class="bi bi-folder-symlink-fill"></i>
+        <span>Central Downloadable PDFs Hub</span>
+        <span class="badge bg-primary text-white rounded-pill ms-1">{{ rules|length + posts|length + dpc_meetings|length + 2 }}</span>
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="pdfTabsContent">
+    
+    <!-- ======================================================================
+         TAB 1: AUTHORITY STAMPS & PDF HEADER SETTINGS
+         ====================================================================== -->
+    <div class="tab-pane fade show active" id="stamps-pane" role="tabpanel" tabindex="0">
+      <div class="row g-4">
+        
+        <!-- Settings Form -->
+        <div class="col-12 col-xl-7">
+          <div class="card border-0 shadow-sm rounded-3 bg-white">
+            <div class="card-header bg-light py-2 px-3 border-bottom fw-bold text-dark d-flex align-items-center gap-2">
+              <i class="bi bi-sliders text-primary"></i>
+              <span>Departmental Headers &amp; Stamp Seal Configuration</span>
+            </div>
+            <div class="card-body p-3">
+              <form method="POST" action="{{ url_for('admin.update_pdf_settings') }}">
+                
+                <!-- Headers Section -->
+                <div class="mb-3">
+                  <h6 class="fw-bold text-success border-bottom pb-1 small text-uppercase">1. Official Departmental Headers</h6>
+                  <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small fw-bold text-dark">Authority / Department Header</label>
+                      <input type="text" name="gov_header" id="inputGovHeader" class="form-control form-control-sm" value="{{ settings.gov_header }}" oninput="updateLivePreview()" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small fw-bold text-dark">Sub-Header / Wing</label>
+                      <input type="text" name="dept_header" id="inputDeptHeader" class="form-control form-control-sm" value="{{ settings.dept_header }}" oninput="updateLivePreview()" required>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small fw-bold text-dark">Portal Title Banner</label>
+                      <input type="text" name="portal_title" id="inputPortalTitle" class="form-control form-control-sm" value="{{ settings.portal_title }}" oninput="updateLivePreview()" required>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Official Stamp Section -->
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2">
+                    <h6 class="fw-bold text-success small text-uppercase mb-0">2. Official Stamp Seal Customization</h6>
+                  </div>
+
+                  <!-- Enable / Disable Stamp Seal Option -->
+                  <div class="p-2 px-3 bg-light rounded border mb-3 d-flex align-items-center justify-content-between">
+                    <div>
+                      <label class="form-check-label fw-bold text-dark small" for="inputIsStampEnabled">
+                        <i class="bi bi-patch-check-fill text-success me-1"></i> Enable Official Stamp Seal on Exported Documents
+                      </label>
+                      <div class="text-muted" style="font-size: 0.72rem;">Turn off to generate clean documents with signatures only</div>
+                    </div>
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" name="is_stamp_enabled" id="inputIsStampEnabled" {% if settings.is_stamp_enabled %}checked{% endif %} onchange="updateLivePreview()">
+                    </div>
+                  </div>
+
+                  <div id="stampConfigBox" {% if not settings.is_stamp_enabled %}style="opacity: 0.5;"{% endif %}>
+                    <div class="row g-2">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-bold text-dark">Stamp Seal Shape</label>
+                        <select name="stamp_shape" id="inputStampShape" class="form-select form-select-sm" onchange="updateLivePreview()">
+                          <option value="Round" {% if settings.stamp_shape == 'Round' %}selected{% endif %}>Round (Circular Seal)</option>
+                          <option value="Oval" {% if settings.stamp_shape == 'Oval' %}selected{% endif %}>Oval (Elliptical Seal)</option>
+                          <option value="Rectangular" {% if settings.stamp_shape == 'Rectangular' %}selected{% endif %}>Rectangular (Official Box)</option>
+                        </select>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small fw-bold text-dark">Stamp Seal Color (Hex)</label>
+                        <div class="input-group input-group-sm">
+                          <input type="color" name="stamp_color" id="inputStampColor" class="form-control form-control-color" value="{{ settings.stamp_color }}" oninput="updateLivePreview()">
+                          <input type="text" class="form-control form-control-sm" id="inputStampColorText" value="{{ settings.stamp_color }}" readonly>
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label small fw-bold text-dark">Stamp Engraved Text</label>
+                        <input type="text" name="stamp_text" id="inputStampText" class="form-control form-control-sm" value="{{ settings.stamp_text }}" oninput="updateLivePreview()" required>
+                        <div class="form-text small">Rendered inside the authentic seal graphic across all exported PDF files.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Signatories Section (Customizable Members) -->
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2">
+                    <h6 class="fw-bold text-success small text-uppercase mb-0">3. District Promotion Committee Signatories (Customizable Members)</h6>
+                    <button type="button" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1" onclick="addSignatoryRow()">
+                      <i class="bi bi-plus-circle"></i> Add Member
+                    </button>
+                  </div>
+                  <div class="text-muted small mb-2">Configure committee members, titles, and designations for all official signatures.</div>
+
+                  <div id="signatoriesContainer">
+                    {% for sig in settings.signatories %}
+                    <div class="card p-2 mb-2 bg-light border signatory-card">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge bg-secondary-subtle text-secondary member-num-badge">Member {{ loop.index }}</span>
+                        <button type="button" class="btn btn-sm btn-link text-danger p-0 text-decoration-none" onclick="removeSignatoryRow(this)">
+                          <i class="bi bi-trash"></i> Remove
+                        </button>
+                      </div>
+                      <div class="row g-2">
+                        <div class="col-12 col-md-4">
+                          <label class="form-label small fw-bold text-dark mb-0">Title / Role <span class="text-danger">*</span></label>
+                          <input type="text" name="sig_title[]" class="form-control form-control-sm sig-title-input" value="{{ sig.title }}" oninput="updateLivePreview()" placeholder="e.g. Member 1 / DEO (SE)" required>
+                        </div>
+                        <div class="col-12 col-md-4">
+                          <label class="form-label small fw-bold text-dark mb-0">Department / Committee</label>
+                          <input type="text" name="sig_dept[]" class="form-control form-control-sm sig-dept-input" value="{{ sig.dept }}" oninput="updateLivePreview()" placeholder="e.g. District Promotion Committee">
+                        </div>
+                        <div class="col-12 col-md-4">
+                          <label class="form-label small fw-bold text-dark mb-0">Officer Name (Optional)</label>
+                          <input type="text" name="sig_name[]" class="form-control form-control-sm sig-name-input" value="{{ sig.name or '' }}" oninput="updateLivePreview()" placeholder="e.g. Tariq Mehmood">
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <!-- Legal Disclaimer -->
+                <div class="mb-3">
+                  <h6 class="fw-bold text-success border-bottom pb-1 small text-uppercase">4. Legal Notice &amp; Statutory Certification</h6>
+                  <textarea name="legal_disclaimer" id="inputLegalDisclaimer" class="form-control form-control-sm" rows="2" oninput="updateLivePreview()">{{ settings.legal_disclaimer }}</textarea>
+                </div>
+
+                <div class="text-end">
+                  <button type="submit" class="btn btn-sm btn-success px-4 shadow-sm">
+                    <i class="bi bi-save2 me-1"></i> Save PDF Stamp &amp; Header Settings
+                  </button>
+                </div>
+
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Visual Preview -->
+        <div class="col-12 col-xl-5">
+          <div class="card border-0 shadow-sm rounded-3 bg-white sticky-top" style="top: 80px;">
+            <div class="card-header bg-light py-2 px-3 border-bottom fw-bold text-dark d-flex align-items-center gap-2">
+              <i class="bi bi-eye text-primary"></i>
+              <span>Live PDF Header &amp; Stamp Preview</span>
+            </div>
+            <div class="card-body p-4 bg-white border m-3 rounded-2 shadow-sm font-monospace" style="background-color: #fafbfc;">
+              
+              <!-- Header Preview -->
+              <div class="text-center border-bottom pb-2 mb-3">
+                <div class="fw-bold fs-6 text-success" id="prevGovHeader">{{ settings.gov_header }}</div>
+                <div class="fw-bold small text-dark" id="prevDeptHeader">{{ settings.dept_header }}</div>
+                <div class="text-muted small" id="prevPortalTitle">{{ settings.portal_title }} &bull; OFFICIAL DOCUMENT GAZETTE</div>
+                <hr class="my-2" id="prevStampHr" style="border: 0; border-top: 2px solid #0D5C3A;">
+              </div>
+
+              <!-- Body Document Sample -->
+              <div class="p-2 mb-3 bg-light rounded text-center small text-muted">
+                [ Table Records / Seniority Candidates / Promotion Evaluation Roll Content ]
+              </div>
+
+              <!-- Stamp & Signatures Preview -->
+              <div class="mt-4 pt-2 border-top">
+                <div class="text-center mb-3" id="prevStampContainer">
+                  <!-- Dynamic Stamp Seal Visual -->
+                  <div id="prevStampBox" class="d-inline-flex flex-column align-items-center justify-content-center p-3 text-center" 
+                       style="border: 2px solid #0D5C3A; color: #0D5C3A; min-width: 190px; border-radius: 4px; padding: 12px; background: #F4FBF7;">
+                    <i class="bi bi-patch-check-fill fs-5 mb-1"></i>
+                    <div class="fw-bold small lh-1 text-uppercase" id="prevStampText" style="font-size: 0.72rem;">{{ settings.stamp_text }}</div>
+                    <div class="small mt-1 text-muted" style="font-size: 0.65rem;">School Education Department</div>
+                    <div class="badge bg-success-subtle text-success mt-1" style="font-size: 0.6rem;">AUTHENTIC SEAL</div>
+                  </div>
+                  <div id="prevStampDisabledNotice" class="text-muted small fst-italic py-2" {% if settings.is_stamp_enabled %}style="display: none;"{% endif %}>
+                    [ Official Stamp Seal Disabled - Direct Signatures Only ]
+                  </div>
+                </div>
+
+                <!-- Customizable Signatures Row -->
+                <div class="row text-center g-2 mt-2 pt-2 border-top" style="font-size: 0.72rem;" id="prevSignaturesRow">
+                  {% for sig in settings.signatories %}
+                  <div class="col">
+                    <div class="border-top pt-1">
+                      {% if sig.name %}<span class="text-dark fw-bold d-block">{{ sig.name }}</span>{% endif %}
+                      <b class="d-block">{{ sig.title }}</b>
+                      <span class="text-muted d-block" style="font-size: 0.65rem;">{{ sig.dept }}</span>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+
+                <div class="text-center text-muted mt-3" style="font-size: 0.65rem;" id="prevLegalDisclaimer">
+                  {{ settings.legal_disclaimer }}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ======================================================================
+         TAB 2: CENTRAL DOWNLOADABLE PDFS HUB
+         ====================================================================== -->
+    <div class="tab-pane fade" id="hub-pane" role="tabpanel" tabindex="0">
+      
+      <!-- Hub Search & Quick Filters -->
+      <div class="card border-0 shadow-sm rounded-3 bg-white mb-3 p-3">
+        <div class="row g-2 align-items-center">
+          <div class="col-12 col-md-6">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control bg-light border-start-0" id="hubSearch" placeholder="Search downloadable PDF by title, cadre, district..." onkeyup="filterPdfHub()">
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <select class="form-select form-select-sm bg-light" id="hubCategoryFilter" onchange="filterPdfHub()">
+              <option value="all">All PDF Categories</option>
+              <option value="promo">Promotion Evaluation Rolls</option>
+              <option value="seniority">Seniority Lists</option>
+              <option value="retire">Superannuation &amp; Retiring Rolls</option>
+              <option value="dossier">Teacher 360 Dossiers</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3 text-md-end">
+            <span class="text-muted small">Instant Official Gazettes &bull; Certified Authenticated</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF Download Cards Grid -->
+      <div class="row g-3" id="hubPdfGrid">
+        
+        <!-- Category: Promotion Evaluation Rolls & Gazettes -->
+        {% for r in rules %}
+        <div class="col-12 col-md-6 col-xl-4 pdf-item" data-cat="promo" data-title="{{ r.rule_name }} {{ r.target_designation }} promotion roll gazette">
+          <div class="card border-0 shadow-sm rounded-3 bg-white h-100 p-3 d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-success-subtle text-success border border-success">
+                  <i class="bi bi-award-fill me-1"></i> Promotion Roll Gazette
+                </span>
+                <span class="badge bg-light text-muted border">BS-{{ r.target_bs }}</span>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">{{ r.target_designation }}</h6>
+              <div class="small text-muted mb-2">
+                Feeder: <b>{{ r.source_designation }}</b> &bull; Quota: {{ r.quota_percentage }}%
+              </div>
+              <p class="small text-secondary mb-3">
+                {{ r.rule_name }}
+              </p>
+            </div>
+            <div class="pt-2 border-top d-flex justify-content-between align-items-center">
+              <span class="text-muted small">Lahore Cadre</span>
+              <a href="{{ url_for('admin.download_promotion_list_pdf', rule_id=r.id, district='Lahore') }}" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        <!-- Category: Seniority Lists by Cadre -->
+        {% for p in posts %}
+        <div class="col-12 col-md-6 col-xl-4 pdf-item" data-cat="seniority" data-title="{{ p.post_title }} {{ p.cadre }} seniority list pdf">
+          <div class="card border-0 shadow-sm rounded-3 bg-white h-100 p-3 d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-primary-subtle text-primary border border-primary">
+                  <i class="bi bi-sort-numeric-down me-1"></i> Official Seniority List
+                </span>
+                <span class="badge bg-light text-muted border">BS-{{ p.basic_scale }}</span>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">{{ p.post_title }}</h6>
+              <div class="small text-muted mb-2">
+                Cadre: <b>{{ p.cadre }}</b> &bull; Category: {{ p.category }}
+              </div>
+              <p class="small text-secondary mb-3">
+                Inter-se statutory seniority roll for District Lahore verified records.
+              </p>
+            </div>
+            <div class="pt-2 border-top d-flex justify-content-between align-items-center">
+              <span class="text-muted small">District Lahore</span>
+              <a href="{{ url_for('admin.download_seniority_pdf', district='Lahore', designation=p.post_title, bs=p.basic_scale) }}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        <!-- Category: Superannuation & Retiring Rolls -->
+        <div class="col-12 col-md-6 col-xl-4 pdf-item" data-cat="retire" data-title="superannuation retiring teachers roll all punjab">
+          <div class="card border-0 shadow-sm rounded-3 bg-white h-100 p-3 d-flex flex-column justify-content-between border-start border-danger border-4">
+            <div>
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-danger-subtle text-danger border border-danger">
+                  <i class="bi bi-clock-history me-1"></i> Superannuation Roll
+                </span>
+                <span class="badge bg-danger text-white">All Punjab</span>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">Statutory Retiring &amp; Superannuated Teachers Roll</h6>
+              <div class="small text-muted mb-2">
+                Statutory Superannuation Limit: Age 60+ (Civil Servants Act 1974)
+              </div>
+              <p class="small text-secondary mb-3">
+                Complete departmental gazette of all teachers attaining 60 years age limit and marked as officially retired.
+              </p>
+            </div>
+            <div class="pt-2 border-top d-flex justify-content-between align-items-center">
+              <span class="text-muted small">Updated Live</span>
+              <a href="{{ url_for('admin.download_all_retiring_pdf') }}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {% for m in dpc_meetings %}
+        <div class="col-12 col-md-6 col-xl-4 pdf-item" data-cat="retire" data-title="dpc meeting {{ m.meeting_no }} retiring roll {{ m.title }}">
+          <div class="card border-0 shadow-sm rounded-3 bg-white h-100 p-3 d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-danger-subtle text-danger border border-danger">
+                  <i class="bi bi-calendar-event me-1"></i> DPC Retiring Roll
+                </span>
+                <span class="badge bg-light text-muted border">{{ m.meeting_date.strftime('%d-%b-%Y') }}</span>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">{{ m.meeting_no }} &bull; Retiring Gazette</h6>
+              <div class="small text-muted mb-2">
+                {{ m.title }}
+              </div>
+              <p class="small text-secondary mb-3">
+                Exempted teachers reaching 60 years on or before DPC cutoff date {{ m.meeting_date.strftime('%d-%m-%Y') }}.
+              </p>
+            </div>
+            <div class="pt-2 border-top d-flex justify-content-between align-items-center">
+              <span class="text-muted small">{{ m.district }}</span>
+              <a href="{{ url_for('admin.download_dpc_retiring_pdf', meeting_id=m.id) }}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        <!-- Category: Sample Teacher 360 Dossiers -->
+        {% for t in sample_teachers %}
+        <div class="col-12 col-md-6 col-xl-4 pdf-item" data-cat="dossier" data-title="teacher dossier {{ t.full_name }} {{ t.cnic }} {{ t.personnel_no }}">
+          <div class="card border-0 shadow-sm rounded-3 bg-white h-100 p-3 d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-secondary-subtle text-dark border">
+                  <i class="bi bi-person-badge me-1"></i> Teacher 360 Dossier
+                </span>
+                <span class="badge bg-light text-muted border">BS-{{ t.current_bs }}</span>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">{{ t.full_name }}</h6>
+              <div class="small text-muted mb-2">
+                CNIC: <b>{{ t.cnic }}</b> &bull; {{ t.personnel_no }}
+              </div>
+              <p class="small text-secondary mb-3">
+                {{ t.current_designation }} &bull; {{ t.school_name }} ({{ t.district }})
+              </p>
+            </div>
+            <div class="pt-2 border-top d-flex justify-content-between align-items-center">
+              <span class="text-muted small">Official Service Dossier</span>
+              <a href="{{ url_for('admin.teacher_dossier_pdf', teacher_id=t.id) }}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+                <i class="bi bi-file-earmark-pdf"></i> Download PDF
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+function updateLivePreview() {
+  document.getElementById('prevGovHeader').innerText = document.getElementById('inputGovHeader').value || 'SCHOOL EDUCATION DEPARTMENT';
+  document.getElementById('prevDeptHeader').innerText = document.getElementById('inputDeptHeader').value || 'TEACHER PROMOTION MANAGEMENT';
+  document.getElementById('prevPortalTitle').innerText = (document.getElementById('inputPortalTitle').value || 'TEACHER PROMOTION PORTAL') + ' • OFFICIAL DOCUMENT GAZETTE';
+
+  const isStampEnabled = document.getElementById('inputIsStampEnabled').checked;
+  const stampBox = document.getElementById('prevStampBox');
+  const disabledNotice = document.getElementById('prevStampDisabledNotice');
+  const stampConfig = document.getElementById('stampConfigBox');
+
+  if (isStampEnabled) {
+    if (stampBox) stampBox.style.display = 'inline-flex';
+    if (disabledNotice) disabledNotice.style.display = 'none';
+    if (stampConfig) stampConfig.style.opacity = '1';
+  } else {
+    if (stampBox) stampBox.style.setProperty('display', 'none', 'important');
+    if (disabledNotice) disabledNotice.style.display = 'block';
+    if (stampConfig) stampConfig.style.opacity = '0.5';
+  }
+
+  const shape = document.getElementById('inputStampShape').value;
+  const color = document.getElementById('inputStampColor').value;
+  document.getElementById('inputStampColorText').value = color;
+  const stampText = document.getElementById('inputStampText').value || 'OFFICIAL SEAL';
+  
+  document.getElementById('prevStampText').innerText = stampText;
+  const stampHr = document.getElementById('prevStampHr');
+  if (stampHr) {
+    stampHr.style.borderTop = `2px solid ${color}`;
+  }
+  if (stampBox) {
+    stampBox.style.borderColor = color;
+    stampBox.style.color = color;
+    
+    if (shape === 'Round') {
+      stampBox.style.borderRadius = '50%';
+      stampBox.style.width = '170px';
+      stampBox.style.height = '170px';
+      stampBox.style.padding = '10px';
+    } else if (shape === 'Oval') {
+      stampBox.style.borderRadius = '50px / 25px';
+      stampBox.style.width = 'auto';
+      stampBox.style.height = 'auto';
+      stampBox.style.padding = '16px';
+    } else {
+      stampBox.style.borderRadius = '4px';
+      stampBox.style.width = 'auto';
+      stampBox.style.height = 'auto';
+      stampBox.style.padding = '12px';
+    }
+  }
+
+  // Update dynamic customizable signatories in live preview
+  const cards = document.querySelectorAll('.signatory-card');
+  const prevRow = document.getElementById('prevSignaturesRow');
+  if (prevRow) {
+    let html = '';
+    cards.forEach(card => {
+      const title = card.querySelector('.sig-title-input')?.value || 'Member';
+      const dept = card.querySelector('.sig-dept-input')?.value || '';
+      const name = card.querySelector('.sig-name-input')?.value || '';
+      const nameHtml = name ? `<span class="text-dark fw-bold d-block">${escapeHtml(name)}</span>` : '';
+      html += `
+        <div class="col">
+          <div class="border-top pt-1">
+            ${nameHtml}
+            <b class="d-block">${escapeHtml(title)}</b>
+            <span class="text-muted d-block" style="font-size: 0.65rem;">${escapeHtml(dept)}</span>
+          </div>
+        </div>
+      `;
+    });
+    prevRow.innerHTML = html;
+  }
+
+  document.getElementById('prevLegalDisclaimer').innerText = document.getElementById('inputLegalDisclaimer').value;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.innerText = text;
+  return div.innerHTML;
+}
+
+function addSignatoryRow() {
+  const container = document.getElementById('signatoriesContainer');
+  const count = container.querySelectorAll('.signatory-card').length + 1;
+  const card = document.createElement('div');
+  card.className = 'card p-2 mb-2 bg-light border signatory-card';
+  card.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <span class="badge bg-secondary-subtle text-secondary member-num-badge">Member ${count}</span>
+      <button type="button" class="btn btn-sm btn-link text-danger p-0 text-decoration-none" onclick="removeSignatoryRow(this)">
+        <i class="bi bi-trash"></i> Remove
+      </button>
+    </div>
+    <div class="row g-2">
+      <div class="col-12 col-md-4">
+        <label class="form-label small fw-bold text-dark mb-0">Title / Role <span class="text-danger">*</span></label>
+        <input type="text" name="sig_title[]" class="form-control form-control-sm sig-title-input" value="Member ${count}" oninput="updateLivePreview()" placeholder="e.g. Secretary DPC" required>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label small fw-bold text-dark mb-0">Department / Committee</label>
+        <input type="text" name="sig_dept[]" class="form-control form-control-sm sig-dept-input" value="District Promotion Committee" oninput="updateLivePreview()" placeholder="e.g. School Education Department">
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label small fw-bold text-dark mb-0">Officer Name (Optional)</label>
+        <input type="text" name="sig_name[]" class="form-control form-control-sm sig-name-input" value="" oninput="updateLivePreview()" placeholder="e.g. Officer Name">
+      </div>
+    </div>
+  `;
+  container.appendChild(card);
+  renumberSignatories();
+  updateLivePreview();
+}
+
+function removeSignatoryRow(btn) {
+  const container = document.getElementById('signatoriesContainer');
+  if (container.querySelectorAll('.signatory-card').length <= 1) {
+    alert("At least one committee signatory member must be present.");
+    return;
+  }
+  const card = btn.closest('.signatory-card');
+  if (card) {
+    card.remove();
+    renumberSignatories();
+    updateLivePreview();
+  }
+}
+
+function renumberSignatories() {
+  const cards = document.querySelectorAll('.signatory-card');
+  cards.forEach((c, idx) => {
+    const badge = c.querySelector('.member-num-badge');
+    if (badge) badge.innerText = `Member ${idx + 1}`;
+  });
+}
+
+function filterPdfHub() {
+  const query = document.getElementById('hubSearch').value.toLowerCase().trim();
+  const cat = document.getElementById('hubCategoryFilter').value;
+  const items = document.querySelectorAll('.pdf-item');
+  items.forEach(el => {
+    const itemCat = el.getAttribute('data-cat');
+    const title = el.getAttribute('data-title').toLowerCase();
+    const matchCat = (cat === 'all' || itemCat === cat);
+    const matchQuery = (query === '' || title.includes(query));
+    el.style.display = (matchCat && matchQuery) ? '' : 'none';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  updateLivePreview();
+});
+</script>
+{% endblock %}

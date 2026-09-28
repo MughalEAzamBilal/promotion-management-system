@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}Verification Worklist - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <h1 class="page-title"><i class="bi bi-check2-circle text-success me-2"></i> Departmental Verification Worklist</h1>
+    <p class="page-subtitle">Review and verify unverified teacher profiles and newly submitted educational qualifications.</p>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  
+  <!-- Teacher Profiles Pending -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="fw-bold"><i class="bi bi-person-fill text-warning me-2"></i> Teacher Profiles Awaiting Verification</span>
+      <span class="badge bg-warning text-dark">{{ pending_teachers|length }} Pending</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit align-middle mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th style="width: 30%;">Teacher Profile &amp; Identifiers</th>
+              <th style="width: 28%;">District &amp; School Station</th>
+              <th style="width: 18%;">Current Designation</th>
+              <th style="width: 12%;">Appointment</th>
+              <th style="width: 12%;" class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in pending_teachers %}
+            <tr>
+              <!-- Col 1: Teacher Profile -->
+              <td>
+                <div class="fw-bold text-dark text-truncate" style="max-width: 260px;">{{ t.full_name }}</div>
+                <div class="d-flex align-items-center gap-1 mt-1">
+                  <span class="small text-muted font-monospace" style="font-size: 0.72rem;">{{ t.cnic }}</span>
+                  <code class="small text-muted bg-light px-1 border rounded" style="font-size: 0.68rem;">{{ t.personnel_no }}</code>
+                </div>
+              </td>
+
+              <!-- Col 2: District & School -->
+              <td>
+                <div class="fw-semibold text-dark text-truncate" style="max-width: 250px; font-size: 0.8rem;" title="{{ t.school_name }}">
+                  <i class="bi bi-building me-1 text-secondary"></i>{{ t.school_name }}
+                </div>
+                <div class="small text-muted" style="font-size: 0.72rem;">
+                  <i class="bi bi-geo-alt me-1 text-danger"></i>District: {{ t.district }}
+                </div>
+              </td>
+
+              <!-- Col 3: Designation -->
+              <td>
+                <span class="badge bg-punjab text-white">{{ t.current_designation }} (BS-{{ t.current_bs }})</span>
+              </td>
+
+              <!-- Col 4: Appointment -->
+              <td class="small text-dark" style="font-size: 0.74rem;">
+                {{ t.appointment_date.strftime('%d-%m-%Y') if t.appointment_date else 'N/A' }}
+              </td>
+
+              <!-- Col 5: Action -->
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <form method="POST" action="{{ url_for('admin.verify_teacher', teacher_id=t.id) }}" class="d-inline">
+                    <input type="hidden" name="verification_status" value="Verified">
+                    <button type="submit" class="btn btn-sm btn-success" title="Quick Verify Profile">
+                      <i class="bi bi-check-lg me-1"></i> Verify
+                    </button>
+                  </form>
+                  <a href="{{ url_for('admin.teacher_detail', teacher_id=t.id) }}" class="btn btn-sm btn-outline-secondary" title="View Dossier">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">No teacher profiles pending verification. All caught up!</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Qualifications Pending -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="fw-bold"><i class="bi bi-mortarboard text-info me-2"></i> Teacher Qualifications Awaiting Document Verification</span>
+      <span class="badge bg-info text-dark">{{ pending_quals|length }} Pending</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit align-middle mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th style="width: 25%;">Teacher Profile</th>
+              <th style="width: 25%;">Degree &amp; Level</th>
+              <th style="width: 20%;">Subject &amp; Year</th>
+              <th style="width: 18%;">Board / University</th>
+              <th style="width: 12%;" class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for q in pending_quals %}
+            <tr>
+              <!-- Col 1: Teacher Profile -->
+              <td>
+                <div class="fw-bold text-dark text-truncate" style="max-width: 220px;">{{ q.teacher.full_name }}</div>
+                <div class="small text-muted font-monospace" style="font-size: 0.72rem;">{{ q.teacher.cnic }}</div>
+              </td>
+
+              <!-- Col 2: Degree & Level -->
+              <td>
+                <div class="fw-semibold text-dark text-truncate" style="max-width: 220px;" title="{{ q.degree_name }}">
+                  <i class="bi bi-mortarboard-fill text-primary me-1"></i>{{ q.degree_name }}
+                </div>
+                <span class="badge bg-light text-dark border small mt-1">{{ q.degree_level }}</span>
+              </td>
+
+              <!-- Col 3: Subject & Year -->
+              <td>
+                <div class="small text-dark text-truncate" style="max-width: 180px;" title="{{ q.subject }}">{{ q.subject }}</div>
+                <div class="small text-muted" style="font-size: 0.70rem;">Passing: {{ q.passing_year }}</div>
+              </td>
+
+              <!-- Col 4: Board / University -->
+              <td>
+                <div class="small text-secondary text-truncate" style="max-width: 160px; font-size: 0.74rem;" title="{{ q.board_university }}">
+                  {{ q.board_university }}
+                </div>
+              </td>
+
+              <!-- Col 5: Action -->
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <form method="POST" action="{{ url_for('admin.verify_qualification', qual_id=q.id) }}" class="d-inline">
+                    <input type="hidden" name="status" value="Verified">
+                    <button type="submit" class="btn btn-sm btn-success" title="Verify Degree">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                  </form>
+                  <form method="POST" action="{{ url_for('admin.verify_qualification', qual_id=q.id) }}" class="d-inline">
+                    <input type="hidden" name="status" value="Rejected">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Reject Degree">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">No qualifications pending verification.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

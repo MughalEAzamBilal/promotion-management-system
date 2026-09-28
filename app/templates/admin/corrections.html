@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% block title %}Teacher Correction Requests Workflow - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-pencil-square text-success me-2"></i> Teacher Correction Requests Workflow</h1>
+        <p class="page-subtitle">Scrutinize and process correction claims submitted by teachers. Review locked current records versus proposed values and approve or reject each change individually.</p>
+      </div>
+      <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a>
+        <a href="{{ url_for('admin.teachers_list') }}" class="btn btn-punjab btn-sm"><i class="bi bi-people me-1"></i> Teachers Directory</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+
+  <!-- Status & Quick Statistics Toolbar -->
+  {% set pending_count = requests_list | selectattr('status', 'equalto', 'Pending') | list | length %}
+  {% set approved_count = requests_list | selectattr('status', 'equalto', 'Approved') | list | length %}
+  {% set rejected_count = requests_list | selectattr('status', 'equalto', 'Rejected') | list | length %}
+
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3">
+      <div class="row g-3 align-items-center">
+        
+        <div class="col-md-7">
+          <div class="btn-group" role="group" aria-label="Status Filters">
+            <button type="button" class="btn btn-sm btn-outline-primary active filter-btn" data-filter="all">
+              All Claims <span class="badge bg-primary text-white ms-1">{{ requests_list|length }}</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-warning text-dark filter-btn" data-filter="pending">
+              Pending Review <span class="badge bg-warning text-dark ms-1">{{ pending_count }}</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-success filter-btn" data-filter="approved">
+              Approved <span class="badge bg-success text-white ms-1">{{ approved_count }}</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger filter-btn" data-filter="rejected">
+              Rejected <span class="badge bg-danger text-white ms-1">{{ rejected_count }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="col-md-5">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" id="claimsSearchInput" class="form-control" placeholder="Search by teacher name, CNIC, field, or batch ref...">
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Claims Table -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+      <h6 class="fw-bold mb-0 text-dark">
+        <i class="bi bi-list-check text-success me-2"></i> Individual Correction Claims Worklist
+      </h6>
+      <span class="badge bg-light text-dark border" id="visibleCounterBadge">Showing {{ requests_list|length }} of {{ requests_list|length }}</span>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit align-middle mb-0" id="correctionsTable">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 22%;">Teacher &amp; Submission</th>
+              <th style="width: 20%;">Category &amp; Target Field</th>
+              <th style="width: 24%;">Locked vs. Proposed Value</th>
+              <th style="width: 18%;">Grounds &amp; Evidence</th>
+              <th style="width: 16%;" class="text-center">One-by-One Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cr in requests_list %}
+            <tr class="claim-row" data-status="{{ cr.status|lower }}" data-search="{{ cr.teacher.full_name|lower }} {{ cr.teacher.cnic }} {{ cr.field_name|lower }} {{ cr.batch_id|default('')|lower }}">
+              
+              <!-- 1. Teacher & Submission -->
+              <td>
+                <div class="fw-bold text-dark">
+                  <a href="{{ url_for('admin.teacher_detail', teacher_id=cr.teacher.id) }}" class="text-decoration-none text-dark hover-primary" target="_blank" title="View Teacher 360 Dossier">
+                    {{ cr.teacher.full_name }} <i class="bi bi-box-arrow-up-right small text-muted"></i>
+                  </a>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-1 mt-1 small">
+                  <span class="badge bg-light text-dark border"><code>{{ cr.teacher.cnic }}</code></span>
+                  <span class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ cr.teacher.district }}</span>
+                </div>
+                <div class="small text-muted mt-1">
+                  <i class="bi bi-calendar3 me-1"></i>{{ cr.created_at.strftime('%d-%m-%Y %H:%M') }}
+                  {% if cr.batch_id %}
+                    &bull; <span class="badge bg-light text-secondary border" style="font-size: 0.68rem;">{{ cr.batch_id }}</span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- 2. Category & Target Field -->
+              <td>
+                <div class="mb-1">
+                  {% if cr.record_type == 'QUALIFICATION' %}
+                    <span class="badge bg-info-subtle text-info border border-info-subtle">
+                      <i class="bi bi-mortarboard-fill me-1"></i> Qualification
+                    </span>
+                  {% elif cr.record_type == 'SERVICE' %}
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                      <i class="bi bi-clock-history me-1"></i> Service Record
+                    </span>
+                  {% else %}
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                      <i class="bi bi-person-badge-fill me-1"></i> Personal Info
+                    </span>
+                  {% endif %}
+                </div>
+                <div class="fw-bold text-dark fs-6">{{ cr.field_name }}</div>
+                {% if cr.target_attribute %}
+                  <div class="small text-muted"><code>DB: {{ cr.target_attribute }}</code></div>
+                {% endif %}
+              </td>
+
+              <!-- 3. Locked vs Proposed Value -->
+              <td>
+                <div class="small mb-1">
+                  <span class="text-muted">Locked Current Record:</span>
+                  <div class="badge bg-light text-secondary border text-decoration-line-through mt-1 text-wrap text-start">
+                    <i class="bi bi-lock-fill text-muted me-1"></i>{{ cr.current_value or 'N/A' }}
+                  </div>
+                </div>
+                <div class="small">
+                  <span class="text-dark fw-semibold">Proposed Value:</span>
+                  <div class="badge bg-success text-white fw-bold mt-1 text-wrap text-start fs-7">
+                    <i class="bi bi-arrow-right-short text-warning me-1"></i>{{ cr.requested_value }}
+                  </div>
+                </div>
+              </td>
+
+              <!-- 4. Grounds & Evidence -->
+              <td>
+                <div class="small text-dark fw-medium">{{ cr.reason }}</div>
+                {% if cr.supporting_document_name %}
+                  <div class="mt-2">
+                    <span class="badge bg-light text-dark border small text-wrap text-start">
+                      <i class="bi bi-paperclip me-1 text-primary"></i>Ref: {{ cr.supporting_document_name }}
+                    </span>
+                  </div>
+                {% endif %}
+              </td>
+
+              <!-- 5. One-by-One Action -->
+              <td class="text-center">
+                {% if cr.status == 'Pending' %}
+                  <div class="d-flex justify-content-center gap-1">
+                    
+                    <!-- Approve Button (One-by-One) -->
+                    <button type="button" class="btn btn-sm btn-success px-2 py-1" data-bs-toggle="modal" data-bs-target="#approveModal{{ cr.id }}" title="Approve this specific change">
+                      <i class="bi bi-check-lg me-1"></i> Approve
+                    </button>
+
+                    <!-- Reject Button (One-by-One) -->
+                    <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" data-bs-toggle="modal" data-bs-target="#rejectModal{{ cr.id }}" title="Reject this specific change">
+                      <i class="bi bi-x-lg me-1"></i> Reject
+                    </button>
+
+                  </div>
+
+                  <!-- Modal: Approve Individual Claim -->
+                  <div class="modal fade" id="approveModal{{ cr.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog text-start">
+                      <div class="modal-content">
+                        <form method="POST" action="{{ url_for('admin.review_correction', req_id=cr.id) }}">
+                          <input type="hidden" name="action" value="Approve">
+                          <div class="modal-header bg-success text-white">
+                            <h6 class="modal-title fw-bold"><i class="bi bi-check-circle-fill me-2"></i> Approve Correction Claim #{{ cr.id }}</h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                          </div>
+                          <div class="modal-body p-3">
+                            <div class="small text-muted mb-2">Teacher: <strong>{{ cr.teacher.full_name }}</strong> (<code>{{ cr.teacher.cnic }}</code>)</div>
+                            <div class="bg-light p-3 rounded mb-3 small border">
+                              <div><strong>Field:</strong> {{ cr.field_name }}</div>
+                              <div class="text-muted mt-1"><strong>Current Locked Value:</strong> <span class="text-decoration-line-through">{{ cr.current_value }}</span></div>
+                              <div class="text-success fw-bold mt-1"><strong>New Approved Value:</strong> {{ cr.requested_value }}</div>
+                              <div class="mt-1"><strong>Teacher Grounds:</strong> {{ cr.reason }}</div>
+                            </div>
+                            <div class="alert alert-success-subtle small py-2 mb-3">
+                              <i class="bi bi-info-circle-fill me-1"></i> Confirming will <strong>immediately update</strong> the teacher's official database record with this value.
+                            </div>
+                            <div class="mb-2">
+                              <label class="form-label small fw-bold">DEO Administrative Remarks (Optional)</label>
+                              <textarea name="admin_remarks" class="form-control form-control-sm" rows="2" placeholder="e.g. Verified with original Matric Sanad Roll No. 58921. Approved."></textarea>
+                            </div>
+                          </div>
+                          <div class="modal-footer bg-light py-2">
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-sm btn-success px-3 fw-bold">
+                              <i class="bi bi-check-lg me-1"></i> Confirm &amp; Update Record
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Modal: Reject Individual Claim -->
+                  <div class="modal fade" id="rejectModal{{ cr.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog text-start">
+                      <div class="modal-content">
+                        <form method="POST" action="{{ url_for('admin.review_correction', req_id=cr.id) }}">
+                          <input type="hidden" name="action" value="Reject">
+                          <div class="modal-header bg-danger text-white">
+                            <h6 class="modal-title fw-bold"><i class="bi bi-x-circle-fill me-2"></i> Reject Correction Claim #{{ cr.id }}</h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                          </div>
+                          <div class="modal-body p-3">
+                            <div class="small text-muted mb-2">Teacher: <strong>{{ cr.teacher.full_name }}</strong> (<code>{{ cr.teacher.cnic }}</code>)</div>
+                            <div class="bg-light p-3 rounded mb-3 small border">
+                              <div><strong>Field:</strong> {{ cr.field_name }}</div>
+                              <div class="mt-1"><strong>Proposed Value:</strong> {{ cr.requested_value }}</div>
+                              <div class="mt-1"><strong>Teacher Grounds:</strong> {{ cr.reason }}</div>
+                            </div>
+                            <div class="alert alert-danger-subtle small py-2 mb-3">
+                              <i class="bi bi-exclamation-triangle-fill me-1"></i> Rejecting will keep the teacher's current official record completely unchanged.
+                            </div>
+                            <div class="mb-2">
+                              <label class="form-label small fw-bold">Rejection Grounds / Explanation <span class="text-danger">*</span></label>
+                              <textarea name="admin_remarks" class="form-control form-control-sm" rows="2" placeholder="e.g. Discrepancy not substantiated by attached service book copy." required></textarea>
+                            </div>
+                          </div>
+                          <div class="modal-footer bg-light py-2">
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-sm btn-danger px-3 fw-bold">
+                              <i class="bi bi-x-circle me-1"></i> Confirm Rejection
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+
+                {% elif cr.status == 'Approved' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                    <i class="bi bi-check-circle-fill me-1"></i> Approved
+                  </span>
+                  {% if cr.reviewed_by %}
+                    <div class="small text-muted mt-1">By <strong>{{ cr.reviewed_by }}</strong></div>
+                  {% endif %}
+                  {% if cr.admin_remarks %}
+                    <div class="small text-secondary fst-italic mt-1" title="{{ cr.admin_remarks }}">
+                      {{ cr.admin_remarks[:30] }}{% if cr.admin_remarks|length > 30 %}...{% endif %}
+                    </div>
+                  {% endif %}
+
+                {% elif cr.status == 'Rejected' %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                    <i class="bi bi-x-circle-fill me-1"></i> Rejected
+                  </span>
+                  {% if cr.reviewed_by %}
+                    <div class="small text-muted mt-1">By <strong>{{ cr.reviewed_by }}</strong></div>
+                  {% endif %}
+                  {% if cr.admin_remarks %}
+                    <div class="small text-secondary fst-italic mt-1" title="{{ cr.admin_remarks }}">
+                      {{ cr.admin_remarks[:30] }}{% if cr.admin_remarks|length > 30 %}...{% endif %}
+                    </div>
+                  {% endif %}
+
+                {% else %}
+                  <span class="badge bg-secondary">{{ cr.status }}</span>
+                {% endif %}
+              </td>
+
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-5">
+                <i class="bi bi-check-all fs-1 text-success mb-2"></i>
+                <h6>No correction requests submitted by teachers.</h6>
+                <div class="small">When teachers submit correction requests, they will appear here for individual scrutiny.</div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Interactive Client-side Filtering -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const searchInput = document.getElementById('claimsSearchInput');
+  const rows = document.querySelectorAll('.claim-row');
+  const visibleCounter = document.getElementById('visibleCounterBadge');
+  const totalCount = rows.length;
+
+  let currentFilter = 'all';
+
+  function applyFilters() {
+    const query = (searchInput.value || '').trim().toLowerCase();
+    let visible = 0;
+
+    rows.forEach(row => {
+      const status = row.dataset.status;
+      const searchContent = row.dataset.search || '';
+
+      const matchesStatus = (currentFilter === 'all') || (status === currentFilter);
+      const matchesSearch = !query || searchContent.includes(query);
+
+      if (matchesStatus && matchesSearch) {
+        row.style.display = '';
+        visible++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (visibleCounter) {
+      visibleCounter.textContent = `Showing ${visible} of ${totalCount}`;
+    }
+  }
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', function () {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      currentFilter = this.dataset.filter;
+      applyFilters();
+    });
+  });
+
+  searchInput.addEventListener('input', applyFilters);
+});
+</script>
+{% endblock %}

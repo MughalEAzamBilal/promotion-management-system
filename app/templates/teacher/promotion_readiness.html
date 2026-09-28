@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% block title %}My Promotion Readiness &bull; Teacher Promotion Portal{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <h1 class="page-title mb-0">My Promotion Readiness</h1>
+          <span class="badge bg-primary-subtle text-primary border border-primary px-2 py-1">
+            <i class="bi bi-shield-check me-1"></i>Official Statutory Assessment
+          </span>
+        </div>
+        <p class="page-subtitle mt-1">
+          Transparent, rule-by-rule evaluation of your statutory eligibility, feeder cadre, service length, and degree requirements.
+        </p>
+      </div>
+      <div class="mt-2 mt-md-0 d-flex gap-2">
+        {% if selected_rule %}
+        <a href="{{ url_for('teacher.download_simulator_pdf', rule_id=selected_rule.id) }}" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Download Statutory Report
+        </a>
+        {% endif %}
+        <a href="{{ url_for('teacher.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+
+  <!-- Cadre & Promotion Channel Selector -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+      <form method="GET" action="{{ url_for('teacher.promotion_readiness') }}" class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label text-muted small text-uppercase fw-bold">My Current Cadre & Pay Scale</label>
+          <div class="form-control bg-light border-0 fw-bold text-dark py-2">
+            <i class="bi bi-person-badge text-primary me-2"></i>{{ teacher.current_designation }} (BS-{{ teacher.current_bs }})
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label text-muted small text-uppercase fw-bold">Select Promotion Channel / Target Post</label>
+          <select name="rule_id" class="form-select border-primary py-2" onchange="this.form.submit()">
+            {% for r in rules %}
+              <option value="{{ r.id }}" {% if selected_rule and selected_rule.id == r.id %}selected{% endif %}>
+                {{ r.target_designation }} (BS-{{ r.target_bs }}) &bull; Quota: {{ r.promotion_quota_percent }}% &bull; [{{ r.rule_code }}]
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100 py-2">
+            <i class="bi bi-arrow-clockwise me-1"></i> Refresh Check
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if readiness and selected_rule %}
+  <!-- Main Readiness Summary Header -->
+  <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+    <div class="card-header py-3 px-4 {% if readiness.overall_status == 'Eligible for Consideration' %}bg-success-subtle text-success-emphasis border-success{% elif readiness.overall_status == 'Pending Verification' %}bg-warning-subtle text-warning-emphasis border-warning{% else %}bg-danger-subtle text-danger-emphasis border-danger{% endif %} border-bottom">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="d-flex align-items-center gap-3">
+          {% if readiness.overall_status == 'Eligible for Consideration' %}
+            <div class="rounded-circle bg-success text-white p-2 d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
+              <i class="bi bi-check-lg fs-4"></i>
+            </div>
+            <div>
+              <div class="small text-uppercase fw-bold text-success">Overall Status</div>
+              <h4 class="mb-0 fw-bold text-success">✓ Eligible for Departmental Consideration</h4>
+            </div>
+          {% elif readiness.overall_status == 'Pending Verification' %}
+            <div class="rounded-circle bg-warning text-dark p-2 d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
+              <i class="bi bi-hourglass-split fs-4"></i>
+            </div>
+            <div>
+              <div class="small text-uppercase fw-bold text-warning-emphasis">Overall Status</div>
+              <h4 class="mb-0 fw-bold text-warning-emphasis">⏳ Pending Administrative Verification</h4>
+            </div>
+          {% else %}
+            <div class="rounded-circle bg-danger text-white p-2 d-flex align-items-center justify-content-center" style="width: 46px; height: 46px;">
+              <i class="bi bi-x-lg fs-4"></i>
+            </div>
+            <div>
+              <div class="small text-uppercase fw-bold text-danger">Overall Status</div>
+              <h4 class="mb-0 fw-bold text-danger">⚠️ Not Currently Eligible</h4>
+            </div>
+          {% endif %}
+        </div>
+        <div class="text-md-end">
+          <span class="badge bg-white text-dark border px-3 py-2 fs-6 shadow-sm">
+            Target: <strong>{{ selected_rule.target_designation }}</strong> (BS-{{ selected_rule.target_bs }})
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-4">
+      <div class="row g-4 mb-3">
+        <div class="col-md-3">
+          <div class="p-3 bg-light rounded-3 text-center border">
+            <div class="text-muted small text-uppercase fw-semibold mb-1">Current Cadre</div>
+            <div class="fw-bold fs-6 text-dark">{{ teacher.current_designation }}</div>
+            <div class="small text-muted">BS-{{ teacher.current_bs }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="p-3 bg-light rounded-3 text-center border">
+            <div class="text-muted small text-uppercase fw-semibold mb-1">Target Promotional Cadre</div>
+            <div class="fw-bold fs-6 text-primary">{{ selected_rule.target_designation }}</div>
+            <div class="small text-muted">BS-{{ selected_rule.target_bs }} &bull; Quota {{ selected_rule.promotion_quota_percent }}%</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="p-3 bg-light rounded-3 text-center border">
+            <div class="text-muted small text-uppercase fw-semibold mb-1">Promotion Quota Channel</div>
+            <div class="fw-bold fs-6 text-dark">{{ selected_rule.feeder_cadre_percentage }}% Allocation</div>
+            <div class="small text-muted">{{ selected_rule.rule_code }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="p-3 bg-light rounded-3 text-center border">
+            <div class="text-muted small text-uppercase fw-semibold mb-1">District Seniority Position</div>
+            <div class="fw-bold fs-6 text-dark">Rank #{{ teacher.seniority_no or 'Unassigned' }}</div>
+            <div class="small text-muted">{{ teacher.district }} District</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statutory Summary / Official Note -->
+      <div class="alert {% if readiness.overall_status == 'Eligible for Consideration' %}alert-success{% elif readiness.overall_status == 'Pending Verification' %}alert-warning{% else %}alert-danger{% endif %} border-0 mb-0 rounded-3">
+        <div class="d-flex align-items-start gap-2">
+          <i class="bi bi-info-circle-fill fs-5 mt-1"></i>
+          <div>
+            <strong>Evaluation Summary:</strong>
+            <p class="mb-0 mt-1">{{ readiness.default_reason or 'Eligibility determined per School Education Department Punjab Service Rules 2014.' }}</p>
+            {% if readiness.hard_failures > 0 %}
+              <div class="mt-2 text-danger fw-semibold">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                Identified {{ readiness.hard_failures }} statutory shortfall(s) requiring attention or academic progression.
+              </div>
+            {% endif %}
+            {% if readiness.pending_items > 0 %}
+              <div class="mt-1 text-warning-emphasis fw-semibold">
+                <i class="bi bi-hourglass-top me-1"></i>
+                Identified {{ readiness.pending_items }} item(s) pending official departmental document verification.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statutory 8-Point Criteria Breakdown -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0 fw-bold">
+        <i class="bi bi-list-check text-primary me-2"></i>Statutory Criteria Breakdown
+      </h5>
+      <span class="small text-muted">Statutory Grounds &bull; SED Service Rules 2014</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 50px;" class="text-center">Status</th>
+            <th style="width: 260px;">Statutory Requirement</th>
+            <th style="width: 280px;">Prescribed Criterion</th>
+            <th style="width: 280px;">Your Profile Record</th>
+            <th>Departmental Remarks & Guidance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cond in readiness.conditions %}
+          <tr>
+            <td class="text-center">
+              {% if cond.status == 'PASS' %}
+                <span class="badge rounded-circle bg-success text-white p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                  <i class="bi bi-check-lg fw-bold"></i>
+                </span>
+              {% elif cond.status == 'PENDING' %}
+                <span class="badge rounded-circle bg-warning text-dark p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                  <i class="bi bi-hourglass-split fw-bold"></i>
+                </span>
+              {% elif cond.status == 'WARNING' %}
+                <span class="badge rounded-circle bg-info text-white p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                  <i class="bi bi-exclamation fw-bold"></i>
+                </span>
+              {% else %}
+                <span class="badge rounded-circle bg-danger text-white p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                  <i class="bi bi-x-lg fw-bold"></i>
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <strong class="text-dark d-block">{{ cond.name }}</strong>
+            </td>
+            <td class="text-muted small">
+              {{ cond.required }}
+            </td>
+            <td>
+              <span class="{% if cond.status == 'PASS' %}text-success fw-bold{% elif cond.status == 'PENDING' %}text-warning fw-semibold{% elif cond.status == 'FAIL' %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                {{ cond.actual }}
+              </span>
+            </td>
+            <td class="small">
+              <span class="text-dark">{{ cond.remarks }}</span>
+              {% if cond.status == 'FAIL' and 'Academic' in cond.name %}
+                <div class="mt-1">
+                  <a href="{{ url_for('teacher.qualifications') }}" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                    <i class="bi bi-plus-circle me-1"></i>Add Missing Qualification
+                  </a>
+                </div>
+              {% elif cond.status == 'FAIL' and 'Professional' in cond.name %}
+                <div class="mt-1">
+                  <a href="{{ url_for('teacher.qualifications') }}" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                    <i class="bi bi-plus-circle me-1"></i>Add B.Ed / ADE
+                  </a>
+                </div>
+              {% elif cond.status == 'PENDING' %}
+                <div class="mt-1">
+                  <span class="badge bg-light text-secondary border">Awaiting Admin Verification</span>
+                </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-footer bg-light py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="small text-muted">
+        <i class="bi bi-info-circle me-1"></i>
+        If your profile has discrepancy or missing degree records, submit a correction via 
+        <a href="{{ url_for('teacher.correction_request') }}" class="text-primary fw-bold">Correction Requests</a>.
+      </div>
+      <div>
+        <a href="{{ url_for('teacher.seniority_view') }}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-list-ol me-1"></i> Check District Seniority List
+        </a>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-info border-0 shadow-sm p-4 text-center">
+    <i class="bi bi-info-circle fs-3 text-info d-block mb-2"></i>
+    <h5>No Promotion Rules Available for Selected Cadre</h5>
+    <p class="text-muted mb-0">No active promotion rules have been mapped to your present cadre.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

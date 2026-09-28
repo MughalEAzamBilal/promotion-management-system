@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block title %}DPC Promotion Meeting Schedule &amp; Retiring Cadre Scrutiny{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+
+  <!-- Breadcrumb & Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1 small">
+          <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+          <li class="breadcrumb-item active">DPC Meeting Schedule</li>
+        </ol>
+      </nav>
+      <h3 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+        <i class="bi bi-calendar2-check text-success"></i>
+        <span>District Promotion Committee (DPC) Annual Schedule</span>
+      </h3>
+      <p class="text-muted small mb-0">
+        Statutory promotion boards schedule. Retired &amp; superannuated teachers are exempted from promotion consideration calculated based on each specific meeting date.
+      </p>
+    </div>
+    
+    <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+      <!-- Year Switcher -->
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="bi bi-calendar3 me-1"></i> Year: <b>{{ year_filter }}</b>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+          {% for y in available_years %}
+            <li><a class="dropdown-item {% if y == year_filter %}active{% endif %}" href="{{ url_for('admin.dpc_schedule', year=y) }}">Year {{ y }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <button type="button" class="btn btn-sm btn-success d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#newDpcModal">
+        <i class="bi bi-plus-circle"></i> Schedule DPC Meeting
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Banner -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm rounded-3 bg-white p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Total Meetings in {{ year_filter }}</div>
+            <h2 class="fw-bold text-success mb-0 mt-1">{{ total_meetings }} <span class="fs-6 text-muted fw-normal">Boards</span></h2>
+          </div>
+          <div class="rounded-circle bg-success-subtle p-3 text-success">
+            <i class="bi bi-calendar-event fs-3"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm rounded-3 bg-white p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Superannuation Exemption Policy</div>
+            <div class="fw-semibold text-dark mt-1 small">Section 12, Civil Servants Act 1974</div>
+            <div class="text-muted small">Age &ge; 60 cutoff applied dynamically</div>
+          </div>
+          <div class="rounded-circle bg-danger-subtle p-3 text-danger">
+            <i class="bi bi-shield-slash fs-3"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm rounded-3 bg-white p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase">Official Quota Scrutiny</div>
+            <div class="fw-semibold text-dark mt-1 small">Seniority-cum-Fitness Cadres</div>
+            <div class="text-muted small">PST (BS-14), EST (BS-15), SST (BS-16)</div>
+          </div>
+          <div class="rounded-circle bg-primary-subtle p-3 text-primary">
+            <i class="bi bi-award fs-3"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scheduled Meetings List with Dynamic Cadre-wise Retiring Breakdown -->
+  {% if meeting_summaries %}
+    <div class="row g-3">
+      {% for item in meeting_summaries %}
+      {% set m = item.meeting %}
+      <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-3 bg-white overflow-hidden">
+          
+          <!-- Meeting Header Card -->
+          <div class="card-header bg-light py-3 px-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+              <span class="badge bg-success px-3 py-2 fs-6">
+                <i class="bi bi-clock me-1"></i> {{ m.meeting_date.strftime('%d-%b-%Y') }}
+              </span>
+              <div>
+                <h5 class="fw-bold text-dark mb-0">{{ m.meeting_no }} &bull; {{ m.title }}</h5>
+                <div class="small text-muted">
+                  <span class="me-2"><i class="bi bi-geo-alt"></i> {{ m.district }}</span>
+                  <span class="me-2"><i class="bi bi-diagram-3"></i> Cadres: <b>{{ m.target_cadres }}</b></span>
+                  <span class="badge {% if m.status == 'Completed' %}bg-success{% elif m.status == 'Scheduled' %}bg-primary{% else %}bg-warning text-dark{% endif %}">
+                    {{ m.status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Header Action Buttons -->
+            <div class="d-flex align-items-center gap-2">
+              {% if m.is_editable %}
+                <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#editDpcModal{{ m.id }}">
+                  <i class="bi bi-pencil-square"></i> Edit Schedule
+                </button>
+              {% else %}
+                <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 disabled" title="Editing locked after end date {{ m.effective_end_date.strftime('%d-%m-%Y') }}">
+                  <i class="bi bi-lock-fill"></i> Expired / Locked
+                </button>
+              {% endif %}
+
+              <a href="{{ url_for('admin.download_dpc_retiring_pdf', meeting_id=m.id) }}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1" title="Download Retiring Roll for this DPC">
+                <i class="bi bi-file-earmark-pdf"></i> Retiring Roll PDF
+              </a>
+              <a href="{{ url_for('admin.promotion_lists', as_of_date=m.meeting_date) }}" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1" title="Evaluate Promotion Roll as of this Cutoff">
+                <i class="bi bi-arrow-right-circle"></i> Evaluate Promotion Roll
+              </a>
+              {% if current_user.role == 'SUPERADMIN' %}
+              <form method="POST" action="{{ url_for('admin.delete_dpc_meeting', meeting_id=m.id) }}" onsubmit="return confirm('Delete this DPC meeting?');" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Delete meeting">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Meeting Body & STATUTORY RETIRING TEACHERS BREAKDOWN -->
+          <div class="card-body p-3">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+              <span class="badge bg-light text-dark border">
+                <i class="bi bi-calendar-event me-1"></i> Start / Cutoff Date: <b>{{ m.meeting_date.strftime('%d-%m-%Y') }}</b>
+              </span>
+              <span class="badge bg-light text-dark border">
+                <i class="bi bi-calendar-check me-1"></i> End Date: <b>{{ m.effective_end_date.strftime('%d-%m-%Y') }}</b>
+              </span>
+              {% if m.is_editable %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                  <i class="bi bi-unlock me-1"></i> Editable (Active until {{ m.effective_end_date.strftime('%d-%m-%Y') }})
+                </span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                  <i class="bi bi-lock me-1"></i> Locked (Schedule Ended {{ m.effective_end_date.strftime('%d-%m-%Y') }})
+                </span>
+              {% endif %}
+            </div>
+
+            {% if m.agenda_notes %}
+              <p class="text-secondary small mb-3">
+                <b>Agenda Notes:</b> {{ m.agenda_notes }}
+              </p>
+            {% endif %}
+
+            <!-- PROMINENT RETIRING COUNT & CADRE-WISE DISPLAY UNDER THIS DATE -->
+            <div class="p-3 rounded-3 border bg-light">
+              <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                  <i class="bi bi-person-x-fill text-danger fs-5"></i>
+                  <span>Teachers Exempted / Retiring on or before {{ m.meeting_date.strftime('%d-%m-%Y') }}:</span>
+                  <span class="badge bg-danger fs-6 px-2 py-1">{{ item.total_retiring }} Total Retiring</span>
+                </div>
+                <div class="small text-muted">
+                  Excluded from promotion consideration on this board date
+                </div>
+              </div>
+
+              <!-- Cadre-wise Breakdown Badges -->
+              <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+                <span class="small fw-bold text-muted text-uppercase">Cadre Breakdown:</span>
+                {% for cadre, cnt in item.cadre_counts.items() %}
+                  <span class="badge bg-white text-dark border shadow-sm px-3 py-2 fs-7">
+                    <span class="fw-bold text-primary">{{ cadre }}:</span> <span class="badge bg-danger text-white ms-1">{{ cnt }}</span>
+                  </span>
+                {% else %}
+                  <span class="text-success small fw-semibold">
+                    <i class="bi bi-check-circle me-1"></i> No teachers reach age 60 limit by this scheduled date.
+                  </span>
+                {% endfor %}
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Edit Meeting Modal for this meeting -->
+          <div class="modal fade" id="editDpcModal{{ m.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content border-0 shadow-lg">
+                <form method="POST" action="{{ url_for('admin.edit_dpc_meeting', meeting_id=m.id) }}">
+                  <div class="modal-header bg-primary text-white py-2">
+                    <h5 class="modal-title fs-6 fw-bold">
+                      <i class="bi bi-pencil-square me-1"></i> Edit DPC Meeting Schedule ({{ m.meeting_no }})
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body p-3">
+                    <div class="alert alert-info py-2 small mb-3">
+                      <i class="bi bi-info-circle me-1"></i> This DPC Annual Schedule is editable until its scheduled end date (<b>{{ m.effective_end_date.strftime('%d-%m-%Y') }}</b>).
+                    </div>
+                    <div class="row g-2">
+                      <div class="col-12 col-md-6 mb-2">
+                        <label class="form-label small fw-bold text-dark">Meeting Number <span class="text-danger">*</span></label>
+                        <input type="text" name="meeting_no" class="form-control form-control-sm" value="{{ m.meeting_no }}" required>
+                      </div>
+
+                      <div class="col-12 col-md-6 mb-2">
+                        <label class="form-label small fw-bold text-dark">Year <span class="text-danger">*</span></label>
+                        <input type="number" name="year" class="form-control form-control-sm" value="{{ m.year }}" required>
+                      </div>
+
+                      <div class="col-12 mb-2">
+                        <label class="form-label small fw-bold text-dark">Meeting Title / Board Description <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control form-control-sm" value="{{ m.title }}" required>
+                      </div>
+
+                      <div class="col-12 col-md-6 mb-2">
+                        <label class="form-label small fw-bold text-dark">Start / Meeting Date <span class="text-danger">*</span></label>
+                        <input type="date" name="meeting_date" class="form-control form-control-sm" value="{{ m.meeting_date.strftime('%Y-%m-%d') }}" required>
+                      </div>
+
+                      <div class="col-12 col-md-6 mb-2">
+                        <label class="form-label small fw-bold text-dark">End Date (Proceedings Close)</label>
+                        <input type="date" name="end_date" class="form-control form-control-sm" value="{% if m.end_date %}{{ m.end_date.strftime('%Y-%m-%d') }}{% else %}{{ m.meeting_date.strftime('%Y-%m-%d') }}{% endif %}">
+                      </div>
+
+                      <div class="col-12 col-md-6 mb-2">
+                        <label class="form-label small fw-bold text-dark">District Jurisdiction</label>
+                        <select name="district" class="form-select form-select-sm">
+                          <option value="All Districts" {% if m.district == 'All Districts' %}selected{% endif %}>All Districts</option>
+                          {% for d in punjab_districts %}
+                            <option value="{{ d }}" {% if m.district == d %}selected{% endif %}>{{ d }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+
+                      <div class="col-12 col-md-6 mb-2">
+                        <label class="form-label small fw-bold text-dark">Status</label>
+                        <select name="status" class="form-select form-select-sm">
+                          <option value="Scheduled" {% if m.status == 'Scheduled' %}selected{% endif %}>Scheduled</option>
+                          <option value="In Progress" {% if m.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                          <option value="Completed" {% if m.status == 'Completed' %}selected{% endif %}>Completed</option>
+                          <option value="Postponed" {% if m.status == 'Postponed' %}selected{% endif %}>Postponed</option>
+                        </select>
+                      </div>
+
+                      <div class="col-12 mb-2">
+                        <label class="form-label small fw-bold text-dark">Target Cadres</label>
+                        <input type="text" name="target_cadres" class="form-control form-control-sm" value="{{ m.target_cadres }}">
+                      </div>
+
+                      <div class="col-12 mb-2">
+                        <label class="form-label small fw-bold text-dark">Agenda Notes</label>
+                        <textarea name="agenda_notes" class="form-control form-control-sm" rows="2">{{ m.agenda_notes or '' }}</textarea>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary px-3">
+                      <i class="bi bi-save me-1"></i> Update Schedule
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card border-0 shadow-sm rounded-3 bg-white p-5 text-center">
+      <i class="bi bi-calendar-x text-muted fs-1 mb-2"></i>
+      <h5 class="fw-bold text-dark">No DPC Meetings Scheduled for {{ year_filter }}</h5>
+      <p class="text-muted small mb-3">Click the button below to schedule the first statutory promotion board for this year.</p>
+      <div>
+        <button type="button" class="btn btn-sm btn-success px-3" data-bs-toggle="modal" data-bs-target="#newDpcModal">
+          <i class="bi bi-plus-circle me-1"></i> Schedule DPC Meeting
+        </button>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Schedule DPC Meeting Modal -->
+  <div class="modal fade" id="newDpcModal" tabindex="-1" aria-labelledby="newDpcModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <form method="POST" action="{{ url_for('admin.create_dpc_meeting') }}">
+          <div class="modal-header bg-success text-white py-2">
+            <h5 class="modal-title fs-6 fw-bold" id="newDpcModalLabel">
+              <i class="bi bi-calendar-plus me-1"></i> Schedule Statutory DPC Meeting
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3">
+            <div class="row g-2">
+              <div class="col-12 col-md-6 mb-2">
+                <label class="form-label small fw-bold text-dark">Meeting Number <span class="text-danger">*</span></label>
+                <input type="text" name="meeting_no" class="form-control form-control-sm" placeholder="e.g. DPC-01/{{ year_filter }}" required>
+              </div>
+
+              <div class="col-12 col-md-6 mb-2">
+                <label class="form-label small fw-bold text-dark">Year <span class="text-danger">*</span></label>
+                <input type="number" name="year" class="form-control form-control-sm" value="{{ year_filter }}" required>
+              </div>
+
+              <div class="col-12 mb-2">
+                <label class="form-label small fw-bold text-dark">Meeting Title / Board Description <span class="text-danger">*</span></label>
+                <input type="text" name="title" class="form-control form-control-sm" placeholder="e.g. District Promotion Committee for PST to EST (BS-15)" required>
+              </div>
+
+              <div class="col-12 col-md-6 mb-2">
+                <label class="form-label small fw-bold text-dark">Start / Meeting Date <span class="text-danger">*</span></label>
+                <input type="date" name="meeting_date" class="form-control form-control-sm" required>
+              </div>
+
+              <div class="col-12 col-md-6 mb-2">
+                <label class="form-label small fw-bold text-dark">End Date (Proceedings Close)</label>
+                <input type="date" name="end_date" class="form-control form-control-sm" placeholder="Optional end date">
+                <span class="text-muted" style="font-size:0.75rem;">Defaults to meeting date if left blank</span>
+              </div>
+
+              <div class="col-12 mb-2">
+                <label class="form-label small fw-bold text-dark">District Jurisdiction</label>
+                <select name="district" class="form-select form-select-sm">
+                  <option value="All Districts">All Districts</option>
+                  {% for d in punjab_districts %}
+                    <option value="{{ d }}">{{ d }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-12 mb-2">
+                <label class="form-label small fw-bold text-dark">Target Cadres</label>
+                <input type="text" name="target_cadres" class="form-control form-control-sm" value="PST, EST, SST">
+              </div>
+
+              <div class="col-12 mb-2">
+                <label class="form-label small fw-bold text-dark">Agenda Notes / Statutory Schedule</label>
+                <textarea name="agenda_notes" class="form-control form-control-sm" rows="2" placeholder="e.g. Scrutiny of Seniority-cum-Fitness promotion cases under SED Service Rules."></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer bg-light py-2">
+            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-sm btn-success px-3">
+              <i class="bi bi-check2-circle me-1"></i> Save &amp; Schedule Meeting
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,1087 @@
+{% extends 'base.html' %}
+{% block title %}Official Data Correction Request Portal - Teacher Portal{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-pencil-square text-success me-2"></i> Official Data Correction Request Portal</h1>
+        <p class="page-subtitle">Review your locked credentials across Personal Information, Educational Qualifications, and Service History. Tick any inaccurate field to enable corrections.</p>
+      </div>
+      <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="{{ url_for('teacher.dashboard') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+
+  <!-- Statutory Instructions Alert Card -->
+  <div class="card border-0 shadow-sm mb-4 bg-light">
+    <div class="card-body p-3">
+      <div class="d-flex align-items-start gap-3">
+        <div class="rounded-circle bg-success bg-opacity-10 p-2 text-success d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+          <i class="bi bi-shield-lock-fill fs-4 text-success"></i>
+        </div>
+        <div class="flex-grow-1">
+          <h6 class="fw-bold mb-1 text-dark">Data Correction &amp; Verification Rules</h6>
+          <div class="small text-muted row g-2 mt-1">
+            <div class="col-md-3 col-sm-6">
+              <span class="fw-semibold text-dark"><i class="bi bi-lock-fill text-secondary me-1"></i> Current Record Locked:</span> Official verified records are locked to preserve integrity.
+            </div>
+            <div class="col-md-3 col-sm-6">
+              <span class="fw-semibold text-primary"><i class="bi bi-check2-square text-primary me-1"></i> Tick to Enable:</span> Tick the box next to any inaccurate field to enable editing.
+            </div>
+            <div class="col-md-3 col-sm-6">
+              <span class="fw-semibold text-danger"><i class="bi bi-exclamation-octagon-fill text-danger me-1"></i> Unique Value Required:</span> Corrected cell must contain a new value different from locked data.
+            </div>
+            <div class="col-md-3 col-sm-6">
+              <span class="fw-semibold text-success"><i class="bi bi-person-check-fill text-success me-1"></i> One-by-One Review:</span> The DEO will evaluate and approve or reject each change individually.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form for Batch Correction Submission -->
+  <form method="POST" action="{{ url_for('teacher.correction_request') }}" id="correctionMasterForm">
+
+    <!-- Categorized Navigation Tabs -->
+    <ul class="nav nav-tabs nav-fill mb-4 shadow-sm bg-white rounded-top" id="correctionTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold py-3" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personalSection" type="button" role="tab">
+          <i class="bi bi-person-badge me-2 text-primary"></i> 1. Personal Information
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold py-3" id="qualifications-tab" data-bs-toggle="tab" data-bs-target="#qualificationsSection" type="button" role="tab">
+          <i class="bi bi-mortarboard me-2 text-info"></i> 2. Educational Qualifications ({{ teacher.qualifications|length }})
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold py-3" id="service-tab" data-bs-toggle="tab" data-bs-target="#serviceSection" type="button" role="tab">
+          <i class="bi bi-clock-history me-2 text-warning"></i> 3. Service History ({{ teacher.service_history|length }})
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold py-3" id="history-tab" data-bs-toggle="tab" data-bs-target="#historySection" type="button" role="tab">
+          <i class="bi bi-journal-check me-2 text-success"></i> 4. Submitted Claims History ({{ requests_list|length }})
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="correctionTabContent">
+
+      <!-- ================================================================= -->
+      <!-- TAB 1: PERSONAL INFORMATION CORRECTIONS                           -->
+      <!-- ================================================================= -->
+      <div class="tab-pane fade show active" id="personalSection" role="tabpanel">
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+            <div>
+              <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-person-vcard text-primary me-2"></i> Personal &amp; Identification Credentials</h5>
+              <small class="text-muted">CNIC: <code>{{ teacher.cnic }}</code> | Personnel No: <strong>{{ teacher.personnel_no }}</strong></small>
+            </div>
+            <span class="badge bg-light text-dark border"><i class="bi bi-info-circle me-1"></i> Tick checkbox to modify any field</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-institutional table-full-fit align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 20%;">Field Attribute</th>
+                    <th style="width: 32%;">Current Official Record (Locked 🔒)</th>
+                    <th style="width: 14%;" class="text-center">Tick to Edit</th>
+                    <th style="width: 34%;">Corrected Cell (Enabled on Tick)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <!-- Full Name -->
+                  <tr class="correction-field-row" id="row_personal_full_name">
+                    <td>
+                      <div class="fw-bold text-dark">Full Name</div>
+                      <small class="text-muted">As per CNIC &amp; Matric</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.full_name }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:full_name" id="tick_personal_full_name" data-target="req_personal_full_name" data-current="{{ teacher.full_name }}" data-label="Full Name">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="text" name="req_personal:full_name" id="req_personal_full_name" class="form-control form-control-sm cell-editable-disabled corrected-input" placeholder="Tick checkbox to edit" disabled data-current="{{ teacher.full_name }}" data-label="Full Name">
+                      <input type="hidden" name="label_personal:full_name" value="Full Name">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- Father Name -->
+                  <tr class="correction-field-row" id="row_personal_father_name">
+                    <td>
+                      <div class="fw-bold text-dark">Father's Name</div>
+                      <small class="text-muted">Paternal Name</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.father_name or '' }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:father_name" id="tick_personal_father_name" data-target="req_personal_father_name" data-current="{{ teacher.father_name or '' }}" data-label="Father's Name">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="text" name="req_personal:father_name" id="req_personal_father_name" class="form-control form-control-sm cell-editable-disabled corrected-input" placeholder="Tick checkbox to edit" disabled data-current="{{ teacher.father_name or '' }}" data-label="Father's Name">
+                      <input type="hidden" name="label_personal:father_name" value="Father's Name">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- Date of Birth -->
+                  <tr class="correction-field-row" id="row_personal_date_of_birth">
+                    <td>
+                      <div class="fw-bold text-dark">Date of Birth</div>
+                      <small class="text-muted">Age precedence determining</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.date_of_birth.strftime('%Y-%m-%d') if teacher.date_of_birth else '' }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:date_of_birth" id="tick_personal_date_of_birth" data-target="req_personal_date_of_birth" data-current="{{ teacher.date_of_birth.strftime('%Y-%m-%d') if teacher.date_of_birth else '' }}" data-label="Date of Birth">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="date" name="req_personal:date_of_birth" id="req_personal_date_of_birth" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ teacher.date_of_birth.strftime('%Y-%m-%d') if teacher.date_of_birth else '' }}" data-label="Date of Birth">
+                      <input type="hidden" name="label_personal:date_of_birth" value="Date of Birth">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- Gender -->
+                  <tr class="correction-field-row" id="row_personal_gender">
+                    <td>
+                      <div class="fw-bold text-dark">Gender</div>
+                      <small class="text-muted">Cadre determination</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.gender }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:gender" id="tick_personal_gender" data-target="req_personal_gender" data-current="{{ teacher.gender }}" data-label="Gender">
+                      </div>
+                    </td>
+                    <td>
+                      <select name="req_personal:gender" id="req_personal_gender" class="form-select form-select-sm cell-editable-disabled corrected-input" disabled data-current="{{ teacher.gender }}" data-label="Gender">
+                        <option value="">Select Gender...</option>
+                        <option value="Male" {% if teacher.gender == 'Male' %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if teacher.gender == 'Female' %}selected{% endif %}>Female</option>
+                        <option value="Other" {% if teacher.gender == 'Other' %}selected{% endif %}>Other</option>
+                      </select>
+                      <input type="hidden" name="label_personal:gender" value="Gender">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- Mobile Number -->
+                  <tr class="correction-field-row" id="row_personal_mobile">
+                    <td>
+                      <div class="fw-bold text-dark">Mobile Phone</div>
+                      <small class="text-muted">SMS notification alerts</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.mobile or '' }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:mobile" id="tick_personal_mobile" data-target="req_personal_mobile" data-current="{{ teacher.mobile or '' }}" data-label="Mobile Number">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="text" name="req_personal:mobile" id="req_personal_mobile" class="form-control form-control-sm cell-editable-disabled corrected-input" placeholder="e.g. 03001234567" disabled data-current="{{ teacher.mobile or '' }}" data-label="Mobile Number">
+                      <input type="hidden" name="label_personal:mobile" value="Mobile Number">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- Email Address -->
+                  <tr class="correction-field-row" id="row_personal_email">
+                    <td>
+                      <div class="fw-bold text-dark">Email Address</div>
+                      <small class="text-muted">Official correspondence</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.email or '' }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:email" id="tick_personal_email" data-target="req_personal_email" data-current="{{ teacher.email or '' }}" data-label="Email Address">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="email" name="req_personal:email" id="req_personal_email" class="form-control form-control-sm cell-editable-disabled corrected-input" placeholder="e.g. teacher@punjab.gov.pk" disabled data-current="{{ teacher.email or '' }}" data-label="Email Address">
+                      <input type="hidden" name="label_personal:email" value="Email Address">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- Residential Address -->
+                  <tr class="correction-field-row" id="row_personal_residential_address">
+                    <td>
+                      <div class="fw-bold text-dark">Residential Address</div>
+                      <small class="text-muted">Postal address</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.residential_address or '' }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:residential_address" id="tick_personal_residential_address" data-target="req_personal_residential_address" data-current="{{ teacher.residential_address or '' }}" data-label="Residential Address">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="text" name="req_personal:residential_address" id="req_personal_residential_address" class="form-control form-control-sm cell-editable-disabled corrected-input" placeholder="House / Street / City" disabled data-current="{{ teacher.residential_address or '' }}" data-label="Residential Address">
+                      <input type="hidden" name="label_personal:residential_address" value="Residential Address">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- School Name -->
+                  <tr class="correction-field-row" id="row_personal_school_name">
+                    <td>
+                      <div class="fw-bold text-dark">Current School Name</div>
+                      <small class="text-muted">Present place of posting</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.school_name }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:school_name" id="tick_personal_school_name" data-target="req_personal_school_name" data-current="{{ teacher.school_name }}" data-label="School Name">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="text" name="req_personal:school_name" id="req_personal_school_name" class="form-control form-control-sm cell-editable-disabled corrected-input" placeholder="Enter updated school title" disabled data-current="{{ teacher.school_name }}" data-label="School Name">
+                      <input type="hidden" name="label_personal:school_name" value="School Name">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- EMIS Code -->
+                  <tr class="correction-field-row" id="row_personal_emis_code">
+                    <td>
+                      <div class="fw-bold text-dark">School EMIS Code</div>
+                      <small class="text-muted">8-digit school identifier</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.emis_code or '' }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:emis_code" id="tick_personal_emis_code" data-target="req_personal_emis_code" data-current="{{ teacher.emis_code or '' }}" data-label="School EMIS Code">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="text" name="req_personal:emis_code" id="req_personal_emis_code" class="form-control form-control-sm cell-editable-disabled corrected-input" placeholder="e.g. 35210045" disabled data-current="{{ teacher.emis_code or '' }}" data-label="School EMIS Code">
+                      <input type="hidden" name="label_personal:emis_code" value="School EMIS Code">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- District -->
+                  <tr class="correction-field-row" id="row_personal_district">
+                    <td>
+                      <div class="fw-bold text-dark">District Station</div>
+                      <small class="text-muted">Seniority jurisdiction</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.district }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:district" id="tick_personal_district" data-target="req_personal_district" data-current="{{ teacher.district }}" data-label="District">
+                      </div>
+                    </td>
+                    <td>
+                      <select name="req_personal:district" id="req_personal_district" class="form-select form-select-sm cell-editable-disabled corrected-input" disabled data-current="{{ teacher.district }}" data-label="District">
+                        <option value="">Select District...</option>
+                        {% for dist in punjab_districts %}
+                          <option value="{{ dist }}" {% if teacher.district == dist %}selected{% endif %}>{{ dist }}</option>
+                        {% endfor %}
+                      </select>
+                      <input type="hidden" name="label_personal:district" value="District">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- Tehsil -->
+                  <tr class="correction-field-row" id="row_personal_tehsil">
+                    <td>
+                      <div class="fw-bold text-dark">Tehsil</div>
+                      <small class="text-muted">Sub-district jurisdiction</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.tehsil or '' }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:tehsil" id="tick_personal_tehsil" data-target="req_personal_tehsil" data-current="{{ teacher.tehsil or '' }}" data-label="Tehsil">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="text" name="req_personal:tehsil" id="req_personal_tehsil" class="form-control form-control-sm cell-editable-disabled corrected-input" placeholder="e.g. City Lahore / Model Town" disabled data-current="{{ teacher.tehsil or '' }}" data-label="Tehsil">
+                      <input type="hidden" name="label_personal:tehsil" value="Tehsil">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- Regularization Date -->
+                  <tr class="correction-field-row" id="row_personal_regularization_date">
+                    <td>
+                      <div class="fw-bold text-dark">Regularization Date</div>
+                      <small class="text-muted">Regular service commencement</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.regularization_date.strftime('%Y-%m-%d') if teacher.regularization_date else '' }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:regularization_date" id="tick_personal_regularization_date" data-target="req_personal_regularization_date" data-current="{{ teacher.regularization_date.strftime('%Y-%m-%d') if teacher.regularization_date else '' }}" data-label="Regularization Date">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="date" name="req_personal:regularization_date" id="req_personal_regularization_date" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ teacher.regularization_date.strftime('%Y-%m-%d') if teacher.regularization_date else '' }}" data-label="Regularization Date">
+                      <input type="hidden" name="label_personal:regularization_date" value="Regularization Date">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- First Joining Date -->
+                  <tr class="correction-field-row" id="row_personal_joining_date">
+                    <td>
+                      <div class="fw-bold text-dark">First Entry / Joining Date</div>
+                      <small class="text-muted">Initial government induction</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.joining_date.strftime('%Y-%m-%d') if teacher.joining_date else '' }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:joining_date" id="tick_personal_joining_date" data-target="req_personal_joining_date" data-current="{{ teacher.joining_date.strftime('%Y-%m-%d') if teacher.joining_date else '' }}" data-label="First Joining Date">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="date" name="req_personal:joining_date" id="req_personal_joining_date" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ teacher.joining_date.strftime('%Y-%m-%d') if teacher.joining_date else '' }}" data-label="First Joining Date">
+                      <input type="hidden" name="label_personal:joining_date" value="First Joining Date">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                  <!-- Seniority Number -->
+                  <tr class="correction-field-row" id="row_personal_seniority_no">
+                    <td>
+                      <div class="fw-bold text-dark">Seniority Merit Rank</div>
+                      <small class="text-muted">Official cadre merit list position</small>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm cell-locked" value="{{ teacher.seniority_no or '' }}" readonly>
+                    </td>
+                    <td class="text-center">
+                      <div class="form-check form-switch d-inline-block">
+                        <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="personal:seniority_no" id="tick_personal_seniority_no" data-target="req_personal_seniority_no" data-current="{{ teacher.seniority_no or '' }}" data-label="Seniority Merit Rank">
+                      </div>
+                    </td>
+                    <td>
+                      <input type="number" name="req_personal:seniority_no" id="req_personal_seniority_no" class="form-control form-control-sm cell-editable-disabled corrected-input" placeholder="e.g. 42" disabled data-current="{{ teacher.seniority_no or '' }}" data-label="Seniority Merit Rank">
+                      <input type="hidden" name="label_personal:seniority_no" value="Seniority Merit Rank">
+                      <div class="field-feedback small mt-1"></div>
+                    </td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- TAB 2: EDUCATIONAL QUALIFICATIONS CORRECTIONS                     -->
+      <!-- ================================================================= -->
+      <div class="tab-pane fade" id="qualificationsSection" role="tabpanel">
+        
+        {% if teacher.qualifications %}
+          {% for q in teacher.qualifications %}
+          <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+              <div>
+                <span class="badge bg-primary me-2">{{ q.degree_level }}</span>
+                <span class="fw-bold text-dark fs-6">{{ q.degree_name }}</span>
+                <span class="text-muted ms-2 small">({{ q.passing_year }} &bull; {{ q.board_university }})</span>
+                {% if q.professional_qualification %}
+                  <span class="badge bg-success-subtle text-success border border-success ms-2"><i class="bi bi-award-fill me-1"></i>Professional Degree</span>
+                {% endif %}
+              </div>
+              <span class="badge bg-light text-muted border">Record ID #{{ q.id }}</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover table-institutional table-full-fit align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width: 22%;">Degree Attribute</th>
+                      <th style="width: 30%;">Current Locked Record 🔒</th>
+                      <th style="width: 14%;" class="text-center">Tick to Edit</th>
+                      <th style="width: 34%;">Corrected Cell (Enabled on Tick)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    
+                    <!-- Degree Title -->
+                    <tr class="correction-field-row" id="row_qual_{{ q.id }}_degree_name">
+                      <td><span class="fw-bold text-dark">Degree Title / Certificate</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ q.degree_name }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="qual:{{ q.id }}:degree_name" id="tick_qual_{{ q.id }}_degree_name" data-target="req_qual_{{ q.id }}_degree_name" data-current="{{ q.degree_name }}" data-label="{{ q.degree_name }}: Degree Title">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" name="req_qual:{{ q.id }}:degree_name" id="req_qual_{{ q.id }}_degree_name" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ q.degree_name }}" data-label="{{ q.degree_name }}: Degree Title" placeholder="Tick checkbox to edit">
+                        <input type="hidden" name="label_qual:{{ q.id }}:degree_name" value="{{ q.degree_name }}: Degree Title">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Major Subject -->
+                    <tr class="correction-field-row" id="row_qual_{{ q.id }}_major_subject">
+                      <td><span class="fw-bold text-dark">Major Subject / Discipline</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ q.major_subject or q.subject or '' }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="qual:{{ q.id }}:major_subject" id="tick_qual_{{ q.id }}_major_subject" data-target="req_qual_{{ q.id }}_major_subject" data-current="{{ q.major_subject or q.subject or '' }}" data-label="{{ q.degree_name }}: Major Subject">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" name="req_qual:{{ q.id }}:major_subject" id="req_qual_{{ q.id }}_major_subject" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ q.major_subject or q.subject or '' }}" data-label="{{ q.degree_name }}: Major Subject" placeholder="e.g. Physics / Mathematics / English">
+                        <input type="hidden" name="label_qual:{{ q.id }}:major_subject" value="{{ q.degree_name }}: Major Subject">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Passing Year -->
+                    <tr class="correction-field-row" id="row_qual_{{ q.id }}_passing_year">
+                      <td><span class="fw-bold text-dark">Passing Year</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ q.passing_year }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="qual:{{ q.id }}:passing_year" id="tick_qual_{{ q.id }}_passing_year" data-target="req_qual_{{ q.id }}_passing_year" data-current="{{ q.passing_year }}" data-label="{{ q.degree_name }}: Passing Year">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="number" name="req_qual:{{ q.id }}:passing_year" id="req_qual_{{ q.id }}_passing_year" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ q.passing_year }}" data-label="{{ q.degree_name }}: Passing Year" placeholder="e.g. 2018">
+                        <input type="hidden" name="label_qual:{{ q.id }}:passing_year" value="{{ q.degree_name }}: Passing Year">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Board / University -->
+                    <tr class="correction-field-row" id="row_qual_{{ q.id }}_board_university">
+                      <td><span class="fw-bold text-dark">Board / University</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ q.board_university }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="qual:{{ q.id }}:board_university" id="tick_qual_{{ q.id }}_board_university" data-target="req_qual_{{ q.id }}_board_university" data-current="{{ q.board_university }}" data-label="{{ q.degree_name }}: Institution">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" name="req_qual:{{ q.id }}:board_university" id="req_qual_{{ q.id }}_board_university" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ q.board_university }}" data-label="{{ q.degree_name }}: Institution" placeholder="e.g. University of the Punjab">
+                        <input type="hidden" name="label_qual:{{ q.id }}:board_university" value="{{ q.degree_name }}: Institution">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Division / Grade -->
+                    <tr class="correction-field-row" id="row_qual_{{ q.id }}_division">
+                      <td><span class="fw-bold text-dark">Division / Grade</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ q.division or '' }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="qual:{{ q.id }}:division" id="tick_qual_{{ q.id }}_division" data-target="req_qual_{{ q.id }}_division" data-current="{{ q.division or '' }}" data-label="{{ q.degree_name }}: Division">
+                        </div>
+                      </td>
+                      <td>
+                        <select name="req_qual:{{ q.id }}:division" id="req_qual_{{ q.id }}_division" class="form-select form-select-sm cell-editable-disabled corrected-input" disabled data-current="{{ q.division or '' }}" data-label="{{ q.degree_name }}: Division">
+                          <option value="">Select Division...</option>
+                          <option value="1st Division" {% if q.division == '1st Division' %}selected{% endif %}>1st Division</option>
+                          <option value="2nd Division" {% if q.division == '2nd Division' %}selected{% endif %}>2nd Division</option>
+                          <option value="3rd Division" {% if q.division == '3rd Division' %}selected{% endif %}>3rd Division</option>
+                        </select>
+                        <input type="hidden" name="label_qual:{{ q.id }}:division" value="{{ q.degree_name }}: Division">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Marks Obtained -->
+                    <tr class="correction-field-row" id="row_qual_{{ q.id }}_marks_obtained">
+                      <td><span class="fw-bold text-dark">Marks Obtained</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ q.marks_obtained or '' }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="qual:{{ q.id }}:marks_obtained" id="tick_qual_{{ q.id }}_marks_obtained" data-target="req_qual_{{ q.id }}_marks_obtained" data-current="{{ q.marks_obtained or '' }}" data-label="{{ q.degree_name }}: Marks Obtained">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="number" step="0.5" name="req_qual:{{ q.id }}:marks_obtained" id="req_qual_{{ q.id }}_marks_obtained" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ q.marks_obtained or '' }}" data-label="{{ q.degree_name }}: Marks Obtained" placeholder="e.g. 850">
+                        <input type="hidden" name="label_qual:{{ q.id }}:marks_obtained" value="{{ q.degree_name }}: Marks Obtained">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Total Marks -->
+                    <tr class="correction-field-row" id="row_qual_{{ q.id }}_total_marks">
+                      <td><span class="fw-bold text-dark">Total Marks</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ q.total_marks or '' }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="qual:{{ q.id }}:total_marks" id="tick_qual_{{ q.id }}_total_marks" data-target="req_qual_{{ q.id }}_total_marks" data-current="{{ q.total_marks or '' }}" data-label="{{ q.degree_name }}: Total Marks">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="number" step="0.5" name="req_qual:{{ q.id }}:total_marks" id="req_qual_{{ q.id }}_total_marks" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ q.total_marks or '' }}" data-label="{{ q.degree_name }}: Total Marks" placeholder="e.g. 1100">
+                        <input type="hidden" name="label_qual:{{ q.id }}:total_marks" value="{{ q.degree_name }}: Total Marks">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Registration Number -->
+                    <tr class="correction-field-row" id="row_qual_{{ q.id }}_registration_number">
+                      <td><span class="fw-bold text-dark">Roll / Registration No</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ q.registration_number or '' }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="qual:{{ q.id }}:registration_number" id="tick_qual_{{ q.id }}_registration_number" data-target="req_qual_{{ q.id }}_registration_number" data-current="{{ q.registration_number or '' }}" data-label="{{ q.degree_name }}: Roll / Reg No">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" name="req_qual:{{ q.id }}:registration_number" id="req_qual_{{ q.id }}_registration_number" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ q.registration_number or '' }}" data-label="{{ q.degree_name }}: Roll / Reg No" placeholder="e.g. BISE-123456">
+                        <input type="hidden" name="label_qual:{{ q.id }}:registration_number" value="{{ q.degree_name }}: Roll / Reg No">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="card shadow-sm border-0 p-5 text-center text-muted">
+            <i class="bi bi-mortarboard fs-1 text-secondary mb-2"></i>
+            <h6>No educational qualification credentials recorded.</h6>
+          </div>
+        {% endif %}
+
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- TAB 3: SERVICE HISTORY & POSTINGS CORRECTIONS                     -->
+      <!-- ================================================================= -->
+      <div class="tab-pane fade" id="serviceSection" role="tabpanel">
+        
+        {% if teacher.service_history %}
+          {% for s in teacher.service_history %}
+          <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+              <div>
+                <span class="badge bg-warning text-dark me-2">BS-{{ s.bs }}</span>
+                <span class="fw-bold text-dark fs-6">{{ s.designation }}</span>
+                <span class="text-muted ms-2 small">&bull; {{ s.school_name }} ({{ s.district }})</span>
+                {% if s.is_current_post %}
+                  <span class="badge bg-success ms-2">Current Posting</span>
+                {% endif %}
+              </div>
+              <span class="badge bg-light text-muted border">Posting ID #{{ s.id }}</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover table-institutional table-full-fit align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width: 22%;">Posting Attribute</th>
+                      <th style="width: 30%;">Current Locked Record 🔒</th>
+                      <th style="width: 14%;" class="text-center">Tick to Edit</th>
+                      <th style="width: 34%;">Corrected Cell (Enabled on Tick)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+
+                    <!-- Designation -->
+                    <tr class="correction-field-row" id="row_svc_{{ s.id }}_designation">
+                      <td><span class="fw-bold text-dark">Designation Title</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ s.designation }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="svc:{{ s.id }}:designation" id="tick_svc_{{ s.id }}_designation" data-target="req_svc_{{ s.id }}_designation" data-current="{{ s.designation }}" data-label="{{ s.designation }}: Title">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" name="req_svc:{{ s.id }}:designation" id="req_svc_{{ s.id }}_designation" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ s.designation }}" data-label="{{ s.designation }}: Title" placeholder="Tick checkbox to edit">
+                        <input type="hidden" name="label_svc:{{ s.id }}:designation" value="{{ s.designation }}: Title">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- School Name -->
+                    <tr class="correction-field-row" id="row_svc_{{ s.id }}_school_name">
+                      <td><span class="fw-bold text-dark">Station School Name</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ s.school_name }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="svc:{{ s.id }}:school_name" id="tick_svc_{{ s.id }}_school_name" data-target="req_svc_{{ s.id }}_school_name" data-current="{{ s.school_name }}" data-label="{{ s.designation }}: School">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" name="req_svc:{{ s.id }}:school_name" id="req_svc_{{ s.id }}_school_name" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ s.school_name }}" data-label="{{ s.designation }}: School" placeholder="e.g. Govt High School Model Town">
+                        <input type="hidden" name="label_svc:{{ s.id }}:school_name" value="{{ s.designation }}: School">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Tehsil -->
+                    <tr class="correction-field-row" id="row_svc_{{ s.id }}_tehsil">
+                      <td><span class="fw-bold text-dark">Tehsil Station</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ s.tehsil or '' }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="svc:{{ s.id }}:tehsil" id="tick_svc_{{ s.id }}_tehsil" data-target="req_svc_{{ s.id }}_tehsil" data-current="{{ s.tehsil or '' }}" data-label="{{ s.designation }}: Tehsil">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" name="req_svc:{{ s.id }}:tehsil" id="req_svc_{{ s.id }}_tehsil" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ s.tehsil or '' }}" data-label="{{ s.designation }}: Tehsil" placeholder="e.g. City Lahore">
+                        <input type="hidden" name="label_svc:{{ s.id }}:tehsil" value="{{ s.designation }}: Tehsil">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- From Date (Start Date) -->
+                    <tr class="correction-field-row" id="row_svc_{{ s.id }}_from_date">
+                      <td><span class="fw-bold text-dark">Posting From Date</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ s.from_date.strftime('%Y-%m-%d') if s.from_date else '' }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="svc:{{ s.id }}:from_date" id="tick_svc_{{ s.id }}_from_date" data-target="req_svc_{{ s.id }}_from_date" data-current="{{ s.from_date.strftime('%Y-%m-%d') if s.from_date else '' }}" data-label="{{ s.designation }}: From Date">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="date" name="req_svc:{{ s.id }}:from_date" id="req_svc_{{ s.id }}_from_date" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ s.from_date.strftime('%Y-%m-%d') if s.from_date else '' }}" data-label="{{ s.designation }}: From Date">
+                        <input type="hidden" name="label_svc:{{ s.id }}:from_date" value="{{ s.designation }}: From Date">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- To Date (End Date) -->
+                    <tr class="correction-field-row" id="row_svc_{{ s.id }}_to_date">
+                      <td><span class="fw-bold text-dark">Posting To Date</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ s.to_date.strftime('%Y-%m-%d') if s.to_date else ('Present' if s.is_current_post else '') }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="svc:{{ s.id }}:to_date" id="tick_svc_{{ s.id }}_to_date" data-target="req_svc_{{ s.id }}_to_date" data-current="{{ s.to_date.strftime('%Y-%m-%d') if s.to_date else '' }}" data-label="{{ s.designation }}: To Date">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="date" name="req_svc:{{ s.id }}:to_date" id="req_svc_{{ s.id }}_to_date" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ s.to_date.strftime('%Y-%m-%d') if s.to_date else '' }}" data-label="{{ s.designation }}: To Date">
+                        <input type="hidden" name="label_svc:{{ s.id }}:to_date" value="{{ s.designation }}: To Date">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Order Number -->
+                    <tr class="correction-field-row" id="row_svc_{{ s.id }}_order_no">
+                      <td><span class="fw-bold text-dark">Appointment / Transfer Order No</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ s.order_no or '' }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="svc:{{ s.id }}:order_no" id="tick_svc_{{ s.id }}_order_no" data-target="req_svc_{{ s.id }}_order_no" data-current="{{ s.order_no or '' }}" data-label="{{ s.designation }}: Order No">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" name="req_svc:{{ s.id }}:order_no" id="req_svc_{{ s.id }}_order_no" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ s.order_no or '' }}" data-label="{{ s.designation }}: Order No" placeholder="e.g. SED/EST/2021/1045">
+                        <input type="hidden" name="label_svc:{{ s.id }}:order_no" value="{{ s.designation }}: Order No">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Order Date -->
+                    <tr class="correction-field-row" id="row_svc_{{ s.id }}_order_date">
+                      <td><span class="fw-bold text-dark">Order Date</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ s.order_date.strftime('%Y-%m-%d') if s.order_date else '' }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="svc:{{ s.id }}:order_date" id="tick_svc_{{ s.id }}_order_date" data-target="req_svc_{{ s.id }}_order_date" data-current="{{ s.order_date.strftime('%Y-%m-%d') if s.order_date else '' }}" data-label="{{ s.designation }}: Order Date">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="date" name="req_svc:{{ s.id }}:order_date" id="req_svc_{{ s.id }}_order_date" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ s.order_date.strftime('%Y-%m-%d') if s.order_date else '' }}" data-label="{{ s.designation }}: Order Date">
+                        <input type="hidden" name="label_svc:{{ s.id }}:order_date" value="{{ s.designation }}: Order Date">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                    <!-- Remarks -->
+                    <tr class="correction-field-row" id="row_svc_{{ s.id }}_remarks">
+                      <td><span class="fw-bold text-dark">Official Remarks / Comments</span></td>
+                      <td><input type="text" class="form-control form-control-sm cell-locked" value="{{ s.remarks or '' }}" readonly></td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                          <input class="form-check-input field-ticker" type="checkbox" name="tick_items" value="svc:{{ s.id }}:remarks" id="tick_svc_{{ s.id }}_remarks" data-target="req_svc_{{ s.id }}_remarks" data-current="{{ s.remarks or '' }}" data-label="{{ s.designation }}: Remarks">
+                        </div>
+                      </td>
+                      <td>
+                        <input type="text" name="req_svc:{{ s.id }}:remarks" id="req_svc_{{ s.id }}_remarks" class="form-control form-control-sm cell-editable-disabled corrected-input" disabled data-current="{{ s.remarks or '' }}" data-label="{{ s.designation }}: Remarks" placeholder="e.g. Regularized as per notification 2021">
+                        <input type="hidden" name="label_svc:{{ s.id }}:remarks" value="{{ s.designation }}: Remarks">
+                        <div class="field-feedback small mt-1"></div>
+                      </td>
+                    </tr>
+
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="card shadow-sm border-0 p-5 text-center text-muted">
+            <i class="bi bi-clock-history fs-1 text-secondary mb-2"></i>
+            <h6>No service postings recorded.</h6>
+          </div>
+        {% endif %}
+
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- TAB 4: SUBMITTED CLAIMS HISTORY                                   -->
+      <!-- ================================================================= -->
+      <div class="tab-pane fade" id="historySection" role="tabpanel">
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-success me-2"></i> My Submitted Correction Claims</h5>
+            <span class="badge bg-light text-dark border">{{ requests_list|length }} total claims</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-institutional table-full-fit align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 22%;">Submission &amp; Field</th>
+                    <th style="width: 30%;">Discrepancy Correction Target</th>
+                    <th style="width: 28%;">Reason &amp; Documentary Evidence</th>
+                    <th style="width: 20%;">Review Status &amp; Admin Findings</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for r in requests_list %}
+                  <tr>
+                    <td>
+                      <div class="mb-1"><span class="badge bg-primary text-white">{{ r.field_name }}</span></div>
+                      <div class="small text-muted"><i class="bi bi-calendar3 me-1"></i>{{ r.created_at.strftime('%d-%m-%Y %H:%M') }}</div>
+                      {% if r.batch_id %}
+                        <div class="small text-secondary">Ref: <code>{{ r.batch_id }}</code></div>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div class="small">
+                        <span class="text-muted text-decoration-line-through">{{ r.current_value or 'N/A' }}</span>
+                        <i class="bi bi-arrow-right text-success mx-1"></i>
+                        <span class="text-success fw-bold">{{ r.requested_value }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="small text-secondary">{{ r.reason }}</div>
+                      {% if r.supporting_document_name %}
+                        <div class="mt-1">
+                          <span class="badge bg-light text-dark border small"><i class="bi bi-paperclip me-1 text-primary"></i>Ref: {{ r.supporting_document_name }}</span>
+                        </div>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div>
+                        {% if r.status == 'Approved' %}
+                          <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i> Approved</span>
+                        {% elif r.status == 'Pending' %}
+                          <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> Under Review</span>
+                        {% elif r.status == 'Rejected' %}
+                          <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i> Rejected</span>
+                        {% else %}
+                          <span class="badge bg-secondary">{{ r.status }}</span>
+                        {% endif %}
+                      </div>
+                      {% if r.reviewed_by %}
+                        <div class="small text-muted mt-1">By <strong>{{ r.reviewed_by }}</strong></div>
+                      {% endif %}
+                      <div class="small text-muted mt-1 fst-italic">
+                        {{ r.admin_remarks or 'Awaiting DEO scrutiny.' }}
+                      </div>
+                    </td>
+                  </tr>
+                  {% else %}
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-5">
+                      No correction claims submitted yet. Tick any inaccurate field in Tabs 1, 2, or 3 to raise a claim.
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- STICKY BOTTOM ACTION BAR DOCK                                         -->
+    <!-- ===================================================================== -->
+    <div class="correction-sticky-bar py-3 px-4 rounded shadow mt-4 mb-5">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center">
+          <span id="selectedCountBadge" class="badge bg-primary fs-6 px-3 py-2 me-3 rounded-pill">0</span>
+          <div>
+            <div class="fw-bold text-dark">Fields Marked for Correction</div>
+            <div class="small text-muted" id="dockHint">Tick checkboxes in Personal, Qualification, or Service tabs to propose corrections.</div>
+            <div class="small text-danger fw-semibold d-none" id="dockWarning">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i> Proposed value cannot be identical to current locked data.
+            </div>
+          </div>
+        </div>
+        <div>
+          <button type="button" class="btn btn-punjab px-4 py-2 fw-bold" id="proceedModalBtn" disabled data-bs-toggle="modal" data-bs-target="#submitConfirmModal">
+            <i class="bi bi-send-check me-2"></i> Proceed &amp; Submit Correction Claims
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- SUBMISSION CONFIRMATION MODAL                                         -->
+    <!-- ===================================================================== -->
+    <div class="modal fade" id="submitConfirmModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-punjab text-white">
+            <h5 class="modal-title fw-bold"><i class="bi bi-patch-check-fill me-2"></i> Confirm Correction Claims Submission</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            
+            <p class="small text-muted mb-3">
+              You are submitting the following changes for official departmental scrutiny by the District Education Officer. Each change will be reviewed and approved or rejected individually:
+            </p>
+
+            <!-- Dynamic Selected Items Review Table -->
+            <div class="table-responsive mb-4 border rounded">
+              <table class="table table-sm table-striped mb-0 small">
+                <thead class="table-light">
+                  <tr>
+                    <th>Field / Attribute</th>
+                    <th>Current Locked Value 🔒</th>
+                    <th>Proposed New Value ✨</th>
+                  </tr>
+                </thead>
+                <tbody id="modalChangesSummaryBody">
+                  <!-- Populated dynamically via JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Mandatory Reason -->
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-dark">
+                Official Grounds / Reason for Correction <span class="text-danger">*</span>
+              </label>
+              <textarea name="reason" id="modalReasonInput" class="form-control" rows="3" placeholder="Explain the clerical error, omission, or basis for these proposed changes..." required></textarea>
+              <div class="form-text small">Detailed explanation is statutory requirement under SED Service Rules.</div>
+            </div>
+
+            <!-- Supporting Document Reference -->
+            <div class="mb-3">
+              <label class="form-label small fw-bold text-dark">
+                Official Order / Document Reference Number
+              </label>
+              <input type="text" name="supporting_document_name" class="form-control" placeholder="e.g. DEO Notification No. 1042 / Degree Roll No. 58921 / Matric Sanad Ref">
+              <div class="form-text small">Reference to official orders or credentials expedites DEO verification.</div>
+            </div>
+
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel / Modify Selection</button>
+            <button type="submit" class="btn btn-punjab btn-sm px-4" id="finalSubmitBtn">
+              <i class="bi bi-check2-circle me-1"></i> Confirm &amp; Submit to DEO
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </form>
+
+</div>
+
+<!-- ========================================================================= -->
+<!-- JAVASCRIPT LOGIC: TICK TO ENABLE, UNIQUE VALUE VALIDATION & MODAL SUMMARY  -->
+<!-- ========================================================================= -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const tickers = document.querySelectorAll('.field-ticker');
+  const correctedInputs = document.querySelectorAll('.corrected-input');
+  const proceedModalBtn = document.getElementById('proceedModalBtn');
+  const selectedCountBadge = document.getElementById('selectedCountBadge');
+  const dockHint = document.getElementById('dockHint');
+  const dockWarning = document.getElementById('dockWarning');
+  const summaryBody = document.getElementById('modalChangesSummaryBody');
+  const finalSubmitBtn = document.getElementById('finalSubmitBtn');
+  const modalReasonInput = document.getElementById('modalReasonInput');
+
+  // Handle Tick Checkbox Toggle
+  tickers.forEach(chk => {
+    chk.addEventListener('change', function () {
+      const targetId = this.dataset.target;
+      const targetInput = document.getElementById(targetId);
+      const row = this.closest('.correction-field-row');
+
+      if (this.checked) {
+        targetInput.disabled = false;
+        targetInput.classList.remove('cell-editable-disabled');
+        targetInput.classList.add('cell-editable-active');
+        if (row) row.classList.add('is-ticked');
+        targetInput.focus();
+      } else {
+        targetInput.disabled = true;
+        targetInput.classList.add('cell-editable-disabled');
+        targetInput.classList.remove('cell-editable-active', 'is-valid', 'is-invalid');
+        if (row) row.classList.remove('is-ticked');
+        targetInput.value = '';
+        const feedback = targetInput.parentElement.querySelector('.field-feedback');
+        if (feedback) feedback.innerHTML = '';
+      }
+
+      validateAllFields();
+    });
+  });
+
+  // Handle Input in Corrected Cells (Unique Value Validation)
+  correctedInputs.forEach(input => {
+    input.addEventListener('input', validateSingleField);
+    input.addEventListener('change', validateSingleField);
+  });
+
+  function validateSingleField(e) {
+    const input = e.target;
+    const currentVal = (input.dataset.current || '').trim().toLowerCase();
+    const enteredVal = (input.value || '').trim().toLowerCase();
+    const feedback = input.parentElement.querySelector('.field-feedback');
+
+    if (!enteredVal) {
+      input.classList.remove('is-valid', 'is-invalid');
+      if (feedback) feedback.innerHTML = '<span class="text-warning"><i class="bi bi-pencil-fill me-1"></i> Enter new value</span>';
+    } else if (enteredVal === currentVal) {
+      input.classList.remove('is-valid');
+      input.classList.add('is-invalid');
+      if (feedback) feedback.innerHTML = '<span class="text-danger fw-semibold"><i class="bi bi-x-circle me-1"></i> Must be different from locked data!</span>';
+    } else {
+      input.classList.remove('is-invalid');
+      input.classList.add('is-valid');
+      if (feedback) feedback.innerHTML = '<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Unique value valid</span>';
+    }
+
+    validateAllFields();
+  }
+
+  function validateAllFields() {
+    let tickedCount = 0;
+    let hasIdenticalError = false;
+    let hasEmptyRequired = false;
+
+    tickers.forEach(chk => {
+      if (chk.checked) {
+        tickedCount++;
+        const targetId = chk.dataset.target;
+        const input = document.getElementById(targetId);
+        const currentVal = (input.dataset.current || '').trim().toLowerCase();
+        const enteredVal = (input.value || '').trim().toLowerCase();
+
+        if (!enteredVal) {
+          hasEmptyRequired = true;
+        } else if (enteredVal === currentVal) {
+          hasIdenticalError = true;
+        }
+      }
+    });
+
+    selectedCountBadge.textContent = tickedCount;
+
+    if (tickedCount > 0) {
+      dockHint.textContent = `${tickedCount} field(s) enabled. Ready to proceed once unique values are entered.`;
+    } else {
+      dockHint.textContent = 'Tick checkboxes in Personal, Qualification, or Service tabs to propose corrections.';
+    }
+
+    if (hasIdenticalError) {
+      dockWarning.classList.remove('d-none');
+      dockWarning.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> One or more corrected values are identical to current locked data. All changes must be unique!';
+      proceedModalBtn.disabled = true;
+    } else if (hasEmptyRequired) {
+      dockWarning.classList.remove('d-none');
+      dockWarning.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i> Please enter updated values in all ticked fields.';
+      proceedModalBtn.disabled = true;
+    } else if (tickedCount === 0) {
+      dockWarning.classList.add('d-none');
+      proceedModalBtn.disabled = true;
+    } else {
+      dockWarning.classList.add('d-none');
+      proceedModalBtn.disabled = false;
+    }
+  }
+
+  // Populate Modal Summary when Proceed is clicked
+  proceedModalBtn.addEventListener('click', function () {
+    summaryBody.innerHTML = '';
+    tickers.forEach(chk => {
+      if (chk.checked) {
+        const targetId = chk.dataset.target;
+        const input = document.getElementById(targetId);
+        const label = chk.dataset.label || targetId;
+        const currentVal = input.dataset.current || 'N/A';
+        const enteredVal = input.value || 'N/A';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${label}</strong></td>
+          <td><span class="text-muted text-decoration-line-through">${currentVal}</span></td>
+          <td><span class="text-success fw-bold">${enteredVal}</span></td>
+        `;
+        summaryBody.appendChild(tr);
+      }
+    });
+  });
+
+  // Client-Side Final Submission Intercept
+  document.getElementById('correctionMasterForm').addEventListener('submit', function (e) {
+    if (!modalReasonInput.value.trim()) {
+      e.preventDefault();
+      alert('Please provide an official reason / grounds for the requested corrections.');
+      modalReasonInput.focus();
+    }
+  });
+
+});
+</script>
+{% endblock %}

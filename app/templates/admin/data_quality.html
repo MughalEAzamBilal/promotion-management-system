@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% block title %}Teacher Data Quality &amp; Integrity Monitor{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <h1 class="page-title mb-0"><i class="bi bi-shield-check text-primary me-2"></i> Teacher Data Quality &amp; Integrity Monitor</h1>
+          <span class="badge bg-primary-subtle text-primary border border-primary px-2 py-1">Department Audit</span>
+        </div>
+        <p class="page-subtitle mt-1">
+          Monitor completeness of teacher profiles, missing educational qualifications, service history dates, and verification backlogs.
+        </p>
+      </div>
+      <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="{{ url_for('admin.excel_import', mode='education') }}" class="btn btn-gold btn-sm">
+          <i class="bi bi-mortarboard-fill me-1"></i> Upload Qualifications Excel
+        </a>
+        <a href="{{ url_for('admin.verifications') }}" class="btn btn-outline-success btn-sm">
+          <i class="bi bi-check2-circle me-1"></i> Verification Queue
+        </a>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left me-1"></i> Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+
+  <!-- Summary Metric Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card stat-card shadow-sm h-100 p-3 text-center">
+        <div class="stat-num text-dark">{{ total_active }}</div>
+        <div class="stat-label small">Total Profiles</div>
+        <small class="text-muted"><a href="{{ url_for('admin.data_quality', district=district_filter) }}" class="text-decoration-none">All records</a></small>
+      </div>
+    </div>
+
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card stat-card shadow-sm h-100 p-3 text-center border-start border-4 border-success">
+        <div class="stat-num text-success">{{ complete_teachers_count }}</div>
+        <div class="stat-label small">100% Complete</div>
+        <small class="text-muted">Audit-ready</small>
+      </div>
+    </div>
+
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card stat-card shadow-sm h-100 p-3 text-center border-start border-4 border-warning {% if category == 'missing_qual' %}bg-warning-subtle{% endif %}">
+        <div class="stat-num text-warning">{{ missing_qual_count }}</div>
+        <div class="stat-label small">Missing Degrees</div>
+        <small><a href="{{ url_for('admin.data_quality', category='missing_qual', district=district_filter) }}" class="text-decoration-none fw-bold">Filter &rarr;</a></small>
+      </div>
+    </div>
+
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card stat-card shadow-sm h-100 p-3 text-center border-start border-4 border-danger {% if category == 'missing_dates' %}bg-danger-subtle{% endif %}">
+        <div class="stat-num text-danger">{{ missing_dates_count }}</div>
+        <div class="stat-label small">Missing Service Dates</div>
+        <small><a href="{{ url_for('admin.data_quality', category='missing_dates', district=district_filter) }}" class="text-decoration-none fw-bold">Filter &rarr;</a></small>
+      </div>
+    </div>
+
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card stat-card shadow-sm h-100 p-3 text-center border-start border-4 border-secondary {% if category == 'missing_bio' %}bg-light{% endif %}">
+        <div class="stat-num text-secondary">{{ missing_bio_count }}</div>
+        <div class="stat-label small">Missing Biodata</div>
+        <small><a href="{{ url_for('admin.data_quality', category='missing_bio', district=district_filter) }}" class="text-decoration-none fw-bold">Filter &rarr;</a></small>
+      </div>
+    </div>
+
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card stat-card shadow-sm h-100 p-3 text-center border-start border-4 border-info {% if category == 'unverified' %}bg-info-subtle{% endif %}">
+        <div class="stat-num text-info">{{ unverified_count }}</div>
+        <div class="stat-label small">Unverified</div>
+        <small><a href="{{ url_for('admin.data_quality', category='unverified', district=district_filter) }}" class="text-decoration-none fw-bold">Filter &rarr;</a></small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Scope Bar -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+      <form method="GET" action="{{ url_for('admin.data_quality') }}" class="row g-2 align-items-center">
+        <input type="hidden" name="category" value="{{ category }}">
+        <div class="col-md-4">
+          <label class="small text-muted fw-bold mb-1">District Filter</label>
+          <select name="district" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">-- All Districts --</option>
+            {% for d in districts %}
+              <option value="{{ d }}" {% if district_filter == d %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-5">
+          <label class="small text-muted fw-bold mb-1">Issue Category Scope</label>
+          <div class="btn-group btn-group-sm w-100" role="group">
+            <a href="{{ url_for('admin.data_quality', category='all', district=district_filter) }}" class="btn {% if category == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">All Issues</a>
+            <a href="{{ url_for('admin.data_quality', category='missing_qual', district=district_filter) }}" class="btn {% if category == 'missing_qual' %}btn-warning text-dark{% else %}btn-outline-secondary{% endif %}">Degrees</a>
+            <a href="{{ url_for('admin.data_quality', category='missing_dates', district=district_filter) }}" class="btn {% if category == 'missing_dates' %}btn-danger{% else %}btn-outline-secondary{% endif %}">Dates</a>
+            <a href="{{ url_for('admin.data_quality', category='unverified', district=district_filter) }}" class="btn {% if category == 'unverified' %}btn-info text-dark{% else %}btn-outline-secondary{% endif %}">Unverified</a>
+          </div>
+        </div>
+        <div class="col-md-3 text-md-end mt-3 mt-md-0">
+          <span class="badge bg-light text-dark border px-3 py-2 small">
+            Showing <strong>{{ display_teachers|length }}</strong> profile(s)
+          </span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Quality Audit Table -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0 fw-bold">
+        <i class="bi bi-list-task text-primary me-2"></i>{{ active_label }}
+      </h5>
+      <span class="small text-muted">Click any row action to resolve data gap</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 50px;">#</th>
+            <th style="width: 250px;">Teacher Candidate</th>
+            <th style="width: 220px;">Cadre &amp; School</th>
+            <th style="width: 140px;">District</th>
+            <th style="width: 280px;">Detected Integrity Gaps</th>
+            <th style="width: 130px;">Verification</th>
+            <th style="width: 160px;" class="text-end">Corrective Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in display_teachers %}
+          <tr>
+            <td class="text-muted small">{{ loop.index }}</td>
+            <td>
+              <div class="fw-bold text-dark">{{ t.full_name }}</div>
+              <div class="small text-muted">
+                CNIC: <code>{{ t.cnic }}</code> &bull; Personnel: <code>{{ t.personnel_no }}</code>
+              </div>
+            </td>
+            <td>
+              <div class="fw-semibold text-dark">{{ t.current_designation }} (BS-{{ t.current_bs }})</div>
+              <div class="small text-muted text-truncate" style="max-width: 200px;">{{ t.school_name }}</div>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ t.district }}</span>
+            </td>
+            <td>
+              <div class="d-flex flex-wrap gap-1">
+                {% if not t.qualifications %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">
+                    <i class="bi bi-mortarboard me-1"></i>No Qualifications
+                  </span>
+                {% endif %}
+                {% if not t.regularization_date %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger">
+                    <i class="bi bi-calendar-x me-1"></i>No Regularization Date
+                  </span>
+                {% endif %}
+                {% if not t.appointment_date %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger">
+                    <i class="bi bi-calendar-x me-1"></i>No Appt Date
+                  </span>
+                {% endif %}
+                {% if not t.date_of_birth %}
+                  <span class="badge bg-secondary-subtle text-secondary border border-secondary">
+                    <i class="bi bi-person-x me-1"></i>No DOB
+                  </span>
+                {% endif %}
+                {% if t.qualifications and t.regularization_date and t.appointment_date and t.date_of_birth and t.verification_status != 'Verified' %}
+                  <span class="badge bg-info-subtle text-info-emphasis border border-info">
+                    <i class="bi bi-clock-history me-1"></i>Data Complete &bull; Needs Verification
+                  </span>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              {% if t.verification_status == 'Verified' %}
+                <span class="badge bg-success-subtle text-success border border-success">Verified</span>
+              {% else %}
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">{{ t.verification_status }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('admin.edit_teacher', teacher_id=t.id) }}" class="btn btn-outline-primary" title="Edit Profile Details">
+                  <i class="bi bi-pencil me-1"></i>Edit
+                </a>
+                <a href="{{ url_for('admin.teacher_detail', teacher_id=t.id) }}" class="btn btn-outline-secondary" title="View Full Dossier">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
+              <h6>Excellent! No data quality issues found in this category.</h6>
+              <p class="small text-secondary mb-0">All teacher profiles meet prescribed statutory integrity standards.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-footer bg-light py-3 px-4 d-flex justify-content-between align-items-center">
+      <small class="text-muted">
+        Tip: You can bulk-import missing qualifications using the standardized 
+        <a href="{{ url_for('admin.excel_import', mode='education') }}" class="text-primary fw-bold">Education Excel Template</a>.
+      </small>
+      <a href="{{ url_for('admin.teachers_list') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-people me-1"></i> View All Teachers Directory
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

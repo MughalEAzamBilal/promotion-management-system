@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}Google AdSense Management - Provincial Administrator{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title"><i class="bi bi-google text-danger me-2"></i> Google AdSense Management</h1>
+        <p class="page-subtitle">Configure monetization, ad units, header script placement, and role-based ad visibility.</p>
+      </div>
+      <div>
+        <button class="btn btn-punjab btn-sm" data-bs-toggle="modal" data-bs-target="#newAdSlotModal">
+          <i class="bi bi-plus-circle me-1"></i> Add Ad Unit Slot
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  <div class="row g-4">
+    
+    <!-- Left Column: Global AdSense Config -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-bold">
+          <i class="bi bi-sliders text-success me-2"></i> AdSense Core Configuration
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('superadmin.manage_adsense') }}">
+            <input type="hidden" name="form_type" value="settings">
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Publisher ID (AdSense Client)</label>
+              <input type="text" name="publisher_id" class="form-control font-monospace" value="{{ adsense.publisher_id }}" placeholder="ca-pub-XXXXXXXXXXXXXXXX">
+              <small class="text-muted">Found in your Google AdSense account &gt; Account Information.</small>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="ads_enabled" id="adsEnabled" {% if adsense.ads_enabled %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="adsEnabled">Global Advertising Enabled</label>
+              </div>
+              <small class="text-muted">Master switch to turn all advertisement units on or off across the system.</small>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="auto_ads_enabled" id="autoAds" {% if adsense.auto_ads_enabled %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="autoAds">Enable Auto Ads Script</label>
+              </div>
+              <small class="text-muted">Injects Google's responsive auto-ad script in the HTML header.</small>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="test_mode" id="testMode" {% if adsense.test_mode %}checked{% endif %}>
+                <label class="form-check-label fw-semibold text-warning" for="testMode">AdSense Test / Sandbox Mode</label>
+              </div>
+              <small class="text-muted">Renders visual placeholder banners so you can verify placements without risking AdSense policy violations.</small>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label small fw-semibold">Custom AdSense Header / Verification Script</label>
+              <textarea name="header_code" class="form-control font-monospace small" rows="3" placeholder="<!-- Optional custom AdSense verification code -->">{{ adsense.header_code or '' }}</textarea>
+            </div>
+
+            <button type="submit" class="btn btn-punjab w-100 fw-semibold">
+              <i class="bi bi-check-circle me-1"></i> Save AdSense Settings
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Ad Slots Directory -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <span class="fw-bold"><i class="bi bi-layout-text-window-reverse text-primary me-2"></i> Configured Ad Units & Placements</span>
+          <span class="badge bg-light text-dark border">{{ slots_list|length }} Active Slots</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-institutional table-full-fit mb-0">
+              <thead>
+                <tr>
+                  <th style="width: 28%;">Slot Name &amp; Placement</th>
+                  <th style="width: 24%;">Google Unit ID</th>
+                  <th style="width: 18%;">Audience</th>
+                  <th style="width: 15%;">Status</th>
+                  <th style="width: 15%;" class="text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for slot in slots_list %}
+                <tr>
+                  <td>
+                    <div class="fw-bold text-dark">{{ slot.slot_name }}</div>
+                    <div class="mt-1"><span class="badge bg-secondary text-uppercase small">{{ slot.placement }}</span></div>
+                  </td>
+                  <td><code>{{ slot.slot_id }}</code></td>
+                  <td><span class="badge bg-light text-dark border">{{ slot.target_roles }}</span></td>
+                  <td>
+                    {% if slot.is_active %}
+                      <span class="badge bg-success">Active</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Disabled</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                      <form method="POST" action="{{ url_for('superadmin.manage_adsense') }}" class="d-inline">
+                        <input type="hidden" name="form_type" value="toggle_slot">
+                        <input type="hidden" name="slot_id" value="{{ slot.id }}">
+                        <button type="submit" class="btn btn-outline-secondary btn-sm" title="Toggle Active">
+                          <i class="bi bi-power"></i>
+                        </button>
+                      </form>
+                      <form method="POST" action="{{ url_for('superadmin.manage_adsense') }}" class="d-inline" onsubmit="return confirm('Delete this ad slot?');">
+                        <input type="hidden" name="form_type" value="delete_slot">
+                        <input type="hidden" name="slot_id" value="{{ slot.id }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete Slot">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-4">No ad units configured yet. Click "Add Ad Unit Slot" above.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compliance Advice Box -->
+      <div class="alert alert-info border-0 shadow-sm mt-4 small">
+        <h6 class="fw-bold"><i class="bi bi-shield-check me-1"></i> Google AdSense Best Practices:</h6>
+        <ul class="mb-0 ps-3">
+          <li>Ensure ad banners do not cover operational form buttons or teacher promotion results.</li>
+          <li>Use <code>Test Mode</code> during local development to avoid invalid click penalties.</li>
+          <li>Ad slots can be restricted to specific audiences (e.g. only Teacher portal, or ALL users).</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- New Ad Slot Modal -->
+<div class="modal fade" id="newAdSlotModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('superadmin.manage_adsense') }}">
+        <input type="hidden" name="form_type" value="add_slot">
+        <div class="modal-header bg-punjab text-white">
+          <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle me-1"></i> Add AdSense Unit Slot</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Slot Name <span class="text-danger">*</span></label>
+            <input type="text" name="slot_name" class="form-control" placeholder="e.g. Header Banner or Teacher Portal Bottom" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Google Ad Unit ID (data-ad-slot) <span class="text-danger">*</span></label>
+            <input type="text" name="slot_id" class="form-control font-monospace" placeholder="e.g. 9876543210" required>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Placement</label>
+              <select name="placement" class="form-select">
+                <option value="header">Header Top</option>
+                <option value="content_top">Content Top</option>
+                <option value="content_bottom">Content Bottom</option>
+                <option value="footer">Footer</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Target Audience</label>
+              <select name="target_roles" class="form-select">
+                <option value="ALL">All Users &amp; Visitors</option>
+                <option value="TEACHER">Teachers Only</option>
+                <option value="ADMIN">Admins Only</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-punjab">Save Ad Unit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

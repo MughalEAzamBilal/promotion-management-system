@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Reports &amp; Printouts - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <h1 class="page-title"><i class="bi bi-file-earmark-pdf text-success me-2"></i> Reports &amp; Official Gazette Printouts</h1>
+    <p class="page-subtitle">Download printable PDF seniority rolls, directories, and assessment summaries.</p>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  <div class="row g-4">
+    
+    <!-- Seniority List PDF Card -->
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white fw-bold">
+          <i class="bi bi-sort-numeric-down text-success me-2"></i> Official District Seniority Roll (PDF)
+        </div>
+        <div class="card-body p-4">
+          <p class="small text-muted mb-3">
+            Generates the official published Seniority List for any cadre and district, formatted with serial numbers, personnel numbers, regularization dates, and authorized signature blocks.
+          </p>
+          <form method="GET" action="{{ url_for('admin.download_seniority_pdf') }}">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">District</label>
+              <select name="district" class="form-select">
+                {% for d in districts %}
+                  <option value="{{ d }}">{{ d }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Cadre / Designation</label>
+              <select name="designation" class="form-select">
+                {% for des in designations %}
+                  <option value="{{ des }}">{{ des }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <input type="hidden" name="bs" value="15">
+            <button type="submit" class="btn btn-punjab w-100 fw-semibold">
+              <i class="bi bi-file-earmark-pdf me-1"></i> Generate Seniority PDF
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Complete Directory Excel Card -->
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white fw-bold">
+          <i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i> Comprehensive Teachers Directory (Excel)
+        </div>
+        <div class="card-body p-4">
+          <p class="small text-muted mb-4">
+            Exports the entire database of teaching personnel, including appointment dates, regularization dates, seniority ranks, school postings, and verification statuses formatted for spreadsheet analysis.
+          </p>
+          <div class="text-center py-3">
+            <a href="{{ url_for('admin.export_teachers') }}" class="btn btn-gold px-4 py-2 fw-semibold">
+              <i class="bi bi-download me-1"></i> Export Master Excel Directory
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

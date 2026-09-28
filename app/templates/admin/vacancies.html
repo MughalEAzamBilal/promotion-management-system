@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% block title %}Vacancies &amp; Quotas - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <h1 class="page-title"><i class="bi bi-pie-chart text-success me-2"></i> District Sanctioned Posts &amp; Vacancy Quotas</h1>
+        <p class="page-subtitle">Track filled vs vacant posts and statutory promotion channel allocations (50% promotion quota).</p>
+      </div>
+      <div>
+        <button class="btn btn-punjab btn-sm" data-bs-toggle="modal" data-bs-target="#newVacancyModal">
+          <i class="bi bi-plus-circle me-1"></i> Add Vacancy Record
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="fw-bold">
+        <i class="bi bi-building text-primary me-2"></i> Cadre Sanctioned Posts Statement
+        <span class="badge bg-light text-dark border ms-2" id="vacancyCountBadge">{{ vacancies|length }} Records</span>
+      </div>
+      <div style="max-width: 320px;" class="input-group input-group-sm">
+        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" id="vacancySearchInput" class="form-control" placeholder="Quick filter district, post..." onkeyup="filterVacanciesTable()">
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit align-middle mb-0" id="vacanciesTable">
+          <thead class="bg-light">
+            <tr>
+              <th style="width: 32%;">Target Cadre Post &amp; District</th>
+              <th style="width: 18%;">Sanctioned &amp; Filled</th>
+              <th style="width: 16%;">Vacant Positions</th>
+              <th style="width: 24%;">Quota Allocation</th>
+              <th style="width: 10%;" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in vacancies %}
+            <tr class="vacancy-row">
+              <!-- Col 1: Target Cadre Post & District -->
+              <td>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="badge bg-punjab text-white fw-bold">BS-{{ v.bs }}</span>
+                  <span class="fw-bold text-dark text-truncate" style="max-width: 250px;">{{ v.designation }}</span>
+                </div>
+                <div class="small text-muted">
+                  <i class="bi bi-geo-alt-fill text-danger me-1"></i><strong>{{ v.district }}</strong>
+                  <span class="text-secondary">({{ v.tehsil or 'All Tehsils' }})</span>
+                </div>
+              </td>
+
+              <!-- Col 2: Sanctioned & Filled -->
+              <td>
+                <div class="small text-dark">
+                  <strong>Sanctioned:</strong> {{ v.sanctioned_posts }}
+                </div>
+                <div class="small text-muted mt-1">
+                  Filled: {{ v.filled_posts }}
+                </div>
+              </td>
+
+              <!-- Col 3: Vacant Positions -->
+              <td>
+                {% if v.vacant_posts > 0 %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger fs-6 px-2 py-1">
+                    {{ v.vacant_posts }} Vacant
+                  </span>
+                {% else %}
+                  <span class="badge bg-light text-muted border small">0 Vacant</span>
+                {% endif %}
+              </td>
+
+              <!-- Col 4: Quota Allocation -->
+              <td>
+                <div class="mb-1">
+                  <span class="badge bg-success-subtle text-success border border-success">
+                    <i class="bi bi-award-fill me-1"></i>Promotion: {{ v.promotion_quota_posts }} seats ({{ v.promotion_quota_percent }}%)
+                  </span>
+                </div>
+                <div>
+                  <span class="badge bg-secondary-subtle text-secondary border">
+                    Direct: {{ v.direct_quota_posts }} seats
+                  </span>
+                </div>
+              </td>
+
+              <!-- Col 5: Actions -->
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-primary btn-sm" 
+                          onclick="openEditVacancyModal('{{ v.id }}', '{{ v.district|e }}', '{{ v.tehsil|e if v.tehsil else '' }}', '{{ v.designation|e }}', '{{ v.bs }}', '{{ v.sanctioned_posts }}', '{{ v.filled_posts }}', '{{ v.promotion_quota_percent }}')"
+                          title="Edit Vacancy Record">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                  <form method="POST" action="{{ url_for('admin.delete_vacancy', vac_id=v.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to remove the vacancy record for {{ v.designation }} in {{ v.district }}?');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete Vacancy Record">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr id="noVacanciesRow"><td colspan="5" class="text-center text-muted py-5">No vacancy records configured. Click "Add Vacancy Record" above.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: New Vacancy -->
+<div class="modal fade" id="newVacancyModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin.vacancies') }}">
+        <div class="modal-header bg-punjab text-white">
+          <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle me-1"></i> Add Cadre Vacancy Record</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">District <span class="text-danger">*</span></label>
+              <input type="text" name="district" list="punjab_districts_list" class="form-control" value="Lahore" required placeholder="Select or type district">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Tehsil</label>
+              <input type="text" name="tehsil" class="form-control" value="Model Town" placeholder="Tehsil name">
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-8">
+              <label class="form-label small fw-semibold">Post Designation <span class="text-danger">*</span></label>
+              <select name="designation" id="new_vacancy_designation" class="form-select" required onchange="handleVacancyPostChange(this, 'new_vacancy_bs')">
+                <option value="">-- Select Predefined Teaching Post --</option>
+                {% for cadre, posts in active_teaching_posts|groupby('cadre') %}
+                  <optgroup label="{{ cadre }}">
+                    {% for p in posts %}
+                      <option value="{{ p.post_title }}" data-scale="{{ p.basic_scale }}">{{ p.post_title }} (BS-{{ p.basic_scale }})</option>
+                    {% endfor %}
+                  </optgroup>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Pay Scale <span class="text-danger">*</span></label>
+              <select name="bs" id="new_vacancy_bs" class="form-select" required>
+                {% for scale in [12, 14, 15, 16, 17, 18, 19, 20] %}
+                  <option value="{{ scale }}">BS-{{ scale }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Sanctioned</label>
+              <input type="number" name="sanctioned_posts" class="form-control" value="100" min="0" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Filled</label>
+              <input type="number" name="filled_posts" class="form-control" value="70" min="0" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Promotion Quota %</label>
+              <input type="number" name="promotion_quota_percent" class="form-control" value="50" min="0" max="100" step="1" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-punjab">Save Vacancy Details</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Edit Vacancy -->
+<div class="modal fade" id="editVacancyModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin.vacancies') }}">
+        <input type="hidden" name="vac_id" id="edit_vac_id">
+        <div class="modal-header bg-primary text-white">
+          <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square me-1"></i> Edit Cadre Vacancy Record</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">District <span class="text-danger">*</span></label>
+              <input type="text" name="district" id="edit_district" list="punjab_districts_list" class="form-control" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Tehsil</label>
+              <input type="text" name="tehsil" id="edit_tehsil" class="form-control">
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-8">
+              <label class="form-label small fw-semibold">Post Designation <span class="text-danger">*</span></label>
+              <input type="text" name="designation" id="edit_designation" class="form-control" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Pay Scale <span class="text-danger">*</span></label>
+              <select name="bs" id="edit_bs" class="form-select" required>
+                {% for scale in [12, 14, 15, 16, 17, 18, 19, 20] %}
+                  <option value="{{ scale }}">BS-{{ scale }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Sanctioned</label>
+              <input type="number" name="sanctioned_posts" id="edit_sanctioned" class="form-control" min="0" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Filled</label>
+              <input type="number" name="filled_posts" id="edit_filled" class="form-control" min="0" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-semibold">Promotion Quota %</label>
+              <input type="number" name="promotion_quota_percent" id="edit_quota" class="form-control" min="0" max="100" step="1" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-primary">Update Vacancy Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Datalist: Standard Punjab Districts -->
+<datalist id="punjab_districts_list">
+  {% for d in punjab_districts %}
+    <option value="{{ d }}">
+  {% endfor %}
+</datalist>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleVacancyPostChange(el, scaleTargetId) {
+  const opt = el.options[el.selectedIndex];
+  if (opt && opt.dataset.scale) {
+    const scaleSelect = document.getElementById(scaleTargetId);
+    if (scaleSelect) {
+      scaleSelect.value = opt.dataset.scale;
+    }
+  }
+}
+
+function openEditVacancyModal(id, district, tehsil, designation, bs, sanctioned, filled, quota) {
+  document.getElementById('edit_vac_id').value = id;
+  document.getElementById('edit_district').value = district;
+  document.getElementById('edit_tehsil').value = tehsil;
+  document.getElementById('edit_designation').value = designation;
+  document.getElementById('edit_bs').value = bs;
+  document.getElementById('edit_sanctioned').value = sanctioned;
+  document.getElementById('edit_filled').value = filled;
+  document.getElementById('edit_quota').value = Math.round(parseFloat(quota));
+
+  const modal = new bootstrap.Modal(document.getElementById('editVacancyModal'));
+  modal.show();
+}
+
+function filterVacanciesTable() {
+  const query = document.getElementById('vacancySearchInput').value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#vacanciesTable tbody tr.vacancy-row');
+  let matchCount = 0;
+
+  rows.forEach(row => {
+    const text = row.innerText.toLowerCase();
+    if (!query || text.includes(query)) {
+      row.style.display = '';
+      matchCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+
+  const badge = document.getElementById('vacancyCountBadge');
+  if (badge) {
+    badge.innerText = query ? `${matchCount} Matches` : `${rows.length} Records`;
+  }
+}
+</script>
+{% endblock %}

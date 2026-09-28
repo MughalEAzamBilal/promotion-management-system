@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% block title %}Promotion Run #{{ run.run_no }} &bull; Teacher Promotion Portal{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <h1 class="page-title mb-0">Promotion Scrutiny Run #{{ run.run_no }}</h1>
+          {% if run.status == 'Locked' %}
+            <span class="badge bg-danger text-white border border-danger px-2 py-1 fs-6">
+              <i class="bi bi-lock-fill me-1"></i>🔒 LOCKED ROLL
+            </span>
+          {% elif run.status == 'Finalized' %}
+            <span class="badge bg-info text-dark border border-info px-2 py-1 fs-6">
+              <i class="bi bi-check2-circle me-1"></i>FINALIZED ROLL
+            </span>
+          {% else %}
+            <span class="badge bg-warning text-dark border border-warning px-2 py-1 fs-6">
+              <i class="bi bi-pencil me-1"></i>DRAFT ROLL
+            </span>
+          {% endif %}
+        </div>
+        <p class="page-subtitle mt-1">
+          Official departmental scrutiny snapshot for <strong>{{ run.target_designation }} (BS-{{ run.target_bs }})</strong> in <strong>{{ run.district }} District</strong>.
+        </p>
+      </div>
+      <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="{{ url_for('admin.download_promotion_run_pdf', run_id=run.id) }}" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Download Official PDF
+        </a>
+        <a href="{{ url_for('admin.promotion_runs') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left me-1"></i> Runs Archive
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+
+  <!-- Roll Lifecycle State Banner & Status Transitions -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+          <div class="small text-muted text-uppercase fw-bold mb-1">Official Promotion Roll Lifecycle</div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge {% if run.status == 'Draft' %}bg-warning text-dark{% else %}bg-light text-muted border{% endif %} px-3 py-2 fs-6">
+              1. Draft (In Review)
+            </span>
+            <i class="bi bi-arrow-right text-muted"></i>
+            <span class="badge {% if run.status == 'Finalized' %}bg-info text-dark{% else %}bg-light text-muted border{% endif %} px-3 py-2 fs-6">
+              2. Finalized (DPC Ready)
+            </span>
+            <i class="bi bi-arrow-right text-muted"></i>
+            <span class="badge {% if run.status == 'Locked' %}bg-danger text-white{% else %}bg-light text-muted border{% endif %} px-3 py-2 fs-6">
+              3. 🔒 Locked (Official Record Sealed)
+            </span>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center">
+          {% if run.status == 'Draft' %}
+            <form method="POST" action="{{ url_for('admin.update_promotion_run_status', run_id=run.id) }}" class="d-inline">
+              <input type="hidden" name="status" value="Finalized">
+              <button type="submit" class="btn btn-info btn-sm fw-bold">
+                <i class="bi bi-check-circle me-1"></i> Finalize Roll for DPC
+              </button>
+            </form>
+          {% elif run.status == 'Finalized' %}
+            <form method="POST" action="{{ url_for('admin.update_promotion_run_status', run_id=run.id) }}" class="d-inline">
+              <input type="hidden" name="status" value="Locked">
+              <button type="submit" class="btn btn-danger btn-sm fw-bold" onclick="return confirm('Locking seals the promotion roll against any further edits without written justification. Proceed?');">
+                <i class="bi bi-lock-fill me-1"></i> 🔒 Lock Promotion Roll
+              </button>
+            </form>
+          {% elif run.status == 'Locked' %}
+            <button type="button" class="btn btn-outline-warning btn-sm fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#reopenRollModal">
+              <i class="bi bi-unlock-fill me-1"></i> Reopen / Revise Roll
+            </button>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if run.reopen_reason %}
+      <div class="alert alert-warning border-0 mt-3 mb-0 rounded-3">
+        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+        <strong>Revision / Reopening Notice:</strong> This roll was previously reopened by <strong>{{ run.reopened_by }}</strong> on {{ run.reopened_at.strftime('%d-%b-%Y %H:%M') if run.reopened_at else '' }}.
+        <div class="mt-1 small"><strong>Justification:</strong> {{ run.reopen_reason }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Run Metadata Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="p-3 bg-white rounded-3 shadow-sm border text-center">
+        <div class="text-muted small text-uppercase fw-bold mb-1">Target Promotional Cadre</div>
+        <div class="fw-bold fs-6 text-primary">{{ run.target_designation }}</div>
+        <div class="small text-muted">BS-{{ run.target_bs }} &bull; {{ run.district }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="p-3 bg-white rounded-3 shadow-sm border text-center">
+        <div class="text-muted small text-uppercase fw-bold mb-1">Statutory Feeder Cadre</div>
+        <div class="fw-bold fs-6 text-dark">{{ snapshot.source_designation or 'Feeder' }}</div>
+        <div class="small text-muted">BS-{{ snapshot.source_bs or 'Feeder BS' }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="p-3 bg-white rounded-3 shadow-sm border text-center">
+        <div class="text-muted small text-uppercase fw-bold mb-1">Vacancies &amp; Quota</div>
+        <div class="fw-bold fs-6 text-dark">{{ run.quota_posts }} Quota Posts</div>
+        <div class="small text-muted">{{ run.quota_percent }}% of {{ run.vacant_posts }} Vacancies</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="p-3 bg-white rounded-3 shadow-sm border text-center">
+        <div class="text-muted small text-uppercase fw-bold mb-1">Feeder Candidates</div>
+        <div class="fw-bold fs-6 text-success">{{ run.eligible_count }} Eligible</div>
+        <div class="small text-muted">Out of {{ run.total_candidates }} total candidates</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Candidate Roll Snapshot Table -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0 fw-bold">
+        <i class="bi bi-people-fill text-primary me-2"></i>Official Feeder Candidates Scrutiny Roll
+      </h5>
+      <span class="small text-muted">As of Cutoff Date: <strong>{{ run.cutoff_date.strftime('%d-%m-%Y') if run.cutoff_date else '' }}</strong></span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 70px;">Rank</th>
+            <th style="width: 260px;">Teacher Candidate</th>
+            <th style="width: 220px;">Present Cadre &amp; School</th>
+            <th style="width: 110px;">Service</th>
+            <th style="width: 240px;">Qualifications</th>
+            <th style="width: 150px;">Quota Zone</th>
+            <th style="width: 140px;">Scrutiny Finding</th>
+            <th style="width: 140px;" class="text-end">Committee Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in snapshot.candidates or [] %}
+          <tr>
+            <td>
+              <strong class="text-dark">#{{ c.seniority_no or loop.index }}</strong>
+            </td>
+            <td>
+              <div class="fw-bold text-dark">{{ c.full_name }}</div>
+              <div class="small text-muted">
+                CNIC: <code>{{ c.cnic }}</code> &bull; Personnel: <code>{{ c.personnel_no }}</code>
+              </div>
+            </td>
+            <td>
+              <div class="fw-semibold text-dark">{{ c.feeder_designation }} (BS-{{ c.feeder_bs }})</div>
+              <div class="small text-muted text-truncate" style="max-width: 200px;">{{ c.school_name }}</div>
+            </td>
+            <td>
+              <span class="fw-bold text-dark">{{ c.service_years }} yrs</span>
+            </td>
+            <td>
+              <div class="small fw-semibold text-dark">{{ c.academic_degrees or 'Degree on file' }}</div>
+              <div class="small text-muted">{{ c.prof_degrees or 'B.Ed / ADE' }}</div>
+            </td>
+            <td>
+              {% if 'Quota' in c.panel_zone_badge or 'Panel' in c.panel_zone_badge %}
+                <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
+                  <i class="bi bi-star-fill me-1"></i>Within Quota
+                </span>
+              {% else %}
+                <span class="badge bg-light text-muted border px-2 py-1">Beyond Quota</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if c.overall_status == 'Eligible for Consideration' %}
+                <span class="badge bg-success">Eligible</span>
+              {% elif c.overall_status == 'Pending Verification' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+              {% else %}
+                <span class="badge bg-danger">Ineligible</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if c.committee_decision == 'Promoted' %}
+                <span class="badge bg-success px-2 py-1 fw-bold">✓ Promoted</span>
+              {% elif c.committee_decision == 'Deferred' %}
+                <span class="badge bg-warning text-dark px-2 py-1 fw-bold">Deferred</span>
+              {% elif c.committee_decision == 'Rejected' %}
+                <span class="badge bg-danger px-2 py-1 fw-bold">Superseded</span>
+              {% else %}
+                <span class="badge bg-light text-secondary border px-2 py-1">Pending DPC</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-4 text-muted">No candidate records stored in this scrutiny snapshot.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-footer bg-light py-3 px-4 d-flex justify-content-between align-items-center">
+      <small class="text-muted">
+        Snapshot generated on {{ run.created_at.strftime('%d-%b-%Y %H:%M') if run.created_at else '' }} by {{ run.created_by }}.
+      </small>
+      <a href="{{ url_for('admin.download_promotion_run_pdf', run_id=run.id) }}" class="btn btn-sm btn-outline-danger">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Download Official Roll PDF
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<!-- Reopen Modal -->
+<div class="modal fade" id="reopenRollModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('admin.update_promotion_run_status', run_id=run.id) }}">
+        <input type="hidden" name="status" value="Reopened">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-danger">
+            <i class="bi bi-unlock-fill me-2"></i>Reopen Locked Promotion Roll
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">
+            Under departmental audit rules, reopening a locked roll requires an explicit official justification reason.
+            This action will be permanently recorded in the system audit trail.
+          </p>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Reason for Reopening / Revision <span class="text-danger">*</span></label>
+            <textarea name="reason" rows="3" class="form-control" placeholder="e.g. Revised DPC quorum decision, clerical correction in seniority ranking..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Reopen Roll</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

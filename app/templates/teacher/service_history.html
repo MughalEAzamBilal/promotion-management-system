@@ -1,0 +1,429 @@
+{% extends 'base.html' %}
+{% block title %}Service History - Teacher Portal{% endblock %}
+
+{% block content %}
+<div class="page-header-bar">
+  <div class="container-fluid px-lg-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <h1 class="page-title"><i class="bi bi-clock-history text-success me-2"></i> Verified Service History &amp; Postings</h1>
+        <p class="page-subtitle">Chronological record of official school postings and appointment tenures in the School Education Department.</p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        {% if not teacher.is_data_verified_by_teacher %}
+          <button class="btn btn-warning btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#verifyDataModal">
+            <i class="bi bi-shield-check me-1"></i> Verify My Data
+          </button>
+        {% else %}
+          <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
+            <i class="bi bi-patch-check-fill me-1"></i> Data Verified &amp; Locked
+          </span>
+        {% endif %}
+        <button class="btn btn-punjab btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#addServiceModal">
+          <i class="bi bi-plus-circle me-1"></i> Add Service Posting
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-lg-4 pb-5">
+
+  <!-- Verification Notice Banner -->
+  {% if not teacher.is_data_verified_by_teacher %}
+  <div class="alert alert-warning border-0 shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 p-3 rounded-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-warning-subtle text-warning-emphasis p-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+      </div>
+      <div>
+        <strong class="text-dark d-block">Service History Self-Verification Pending</strong>
+        <span class="small text-muted">You can directly edit your posting tenures or add missing stations. Once reviewed, click <strong>"Verify My Data"</strong> to lock your official record.</span>
+      </div>
+    </div>
+    <div>
+      <button class="btn btn-warning btn-sm fw-bold shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#verifyDataModal">
+        <i class="bi bi-shield-check me-1"></i> Verify My Data
+      </button>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-success border-0 shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 p-3 rounded-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-success text-white p-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+        <i class="bi bi-check2-circle fs-5"></i>
+      </div>
+      <div>
+        <strong class="text-success-emphasis d-block">Service Postings Officially Verified &amp; Locked</strong>
+        <span class="small text-muted">Verified on {{ teacher.teacher_verified_at.strftime('%d-%b-%Y') if teacher.teacher_verified_at else 'Verified' }}. New service additions are always allowed below. To update existing records, submit an official Correction Request.</span>
+      </div>
+    </div>
+    <div>
+      <a href="{{ url_for('teacher.correction_request') }}" class="btn btn-outline-success btn-sm shadow-sm">
+        <i class="bi bi-send-check me-1"></i> Correction Request
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+      <span>Service History Timeline ({{ teacher.service_history|length }} postings on file)</span>
+      <span class="small text-muted font-monospace">New additions always permitted</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-institutional table-full-fit mb-0 align-middle">
+          <thead>
+            <tr>
+              <th style="width: 20%;">Designation &amp; Scale</th>
+              <th style="width: 22%;">School Posting &amp; Station</th>
+              <th style="width: 16%;">Posting Tenure</th>
+              <th style="width: 24%;"><i class="bi bi-bell-fill text-warning me-1"></i> Data Audit &amp; Missing Values</th>
+              <th style="width: 9%;">Status</th>
+              <th style="width: 9%;" class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in teacher.service_history %}
+            <tr class="{% if s.is_new %}table-success bg-opacity-25{% elif s.is_edited %}table-primary bg-opacity-25{% endif %}">
+              <td>
+                <div class="fw-bold text-dark">{{ s.designation }}</div>
+                <div class="d-flex align-items-center gap-1 mt-1 small">
+                  <span class="badge bg-secondary">BS-{{ s.bs }}</span>
+                  <span class="badge bg-light text-dark border">{{ s.appointment_type }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="fw-semibold text-dark">{{ s.school_name }}</div>
+                <div class="small text-muted mt-1"><i class="bi bi-geo-alt me-1 text-danger"></i>{{ s.district }}{% if s.tehsil %}, {{ s.tehsil }}{% endif %}</div>
+              </td>
+              <td>
+                <div class="small fw-semibold text-dark">
+                  <i class="bi bi-calendar3 me-1 text-muted"></i>{{ s.from_date.strftime('%d-%m-%Y') }}
+                </div>
+                <div class="small text-muted mt-1">
+                  {% if s.to_date %}
+                    to {{ s.to_date.strftime('%d-%m-%Y') }}
+                  {% else %}
+                    <span class="badge bg-success">Current Posting</span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- Missing Values / Notifiable Cell -->
+              <td class="{% if s.missing_fields %}bg-warning-subtle bg-opacity-25 border-start border-3 border-warning cell-missing-notice{% else %}bg-success-subtle bg-opacity-10{% endif %}">
+                {% if s.missing_fields %}
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.72rem;">
+                      <i class="bi bi-bell-fill text-danger me-1"></i> {{ s.missing_fields|length }} Missing Value{% if s.missing_fields|length > 1 %}s{% endif %}
+                    </span>
+                    {% if not teacher.is_data_verified_by_teacher %}
+                      <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#editServiceModal_{{ s.id }}" class="small text-primary text-decoration-none fw-semibold" style="font-size: 0.70rem;" title="Fill Missing Fields">
+                        <i class="bi bi-pencil-fill me-1"></i>Add Now
+                      </a>
+                    {% endif %}
+                  </div>
+                  <div class="d-flex flex-wrap gap-1">
+                    {% for mf in s.missing_fields %}
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1" style="font-size: 0.67rem;">
+                        <i class="bi bi-x-circle me-1"></i>{{ mf }}
+                      </span>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div>
+                    <span class="badge bg-success text-white py-1 px-2" style="font-size: 0.72rem;">
+                      <i class="bi bi-check-circle-fill me-1"></i> 100% Complete
+                    </span>
+                    <div class="small text-muted mt-1" style="font-size: 0.68rem;">
+                      <i class="bi bi-check-all text-success me-1"></i>All posting values recorded
+                    </div>
+                  </div>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if s.is_new %}
+                  <div class="mb-1"><span class="badge bg-success text-white"><i class="bi bi-plus-circle me-1"></i>New Addition</span></div>
+                {% elif s.is_edited %}
+                  <div class="mb-1"><span class="badge bg-primary text-white"><i class="bi bi-pencil me-1"></i>Edited Record</span></div>
+                {% endif %}
+                {% if s.verification_status == 'Verified' %}
+                  <span class="badge badge-status-verified">Verified</span>
+                {% else %}
+                  <span class="badge badge-status-pending">{{ s.verification_status }}</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                {% if not teacher.is_data_verified_by_teacher %}
+                  <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2" data-bs-toggle="modal" data-bs-target="#editServiceModal_{{ s.id }}" title="Directly Edit Service Record">
+                    <i class="bi bi-pencil-square me-1"></i>Edit
+                  </button>
+                {% else %}
+                  <span class="badge bg-light text-muted border py-1 px-2" title="Direct edit locked after data verification">
+                    <i class="bi bi-lock-fill me-1"></i>Locked
+                  </span>
+                  <a href="{{ url_for('teacher.correction_request') }}" class="btn btn-outline-secondary btn-sm py-1 px-1 ms-1" title="Request official correction">
+                    <i class="bi bi-arrow-right"></i>
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-5">No service history entries on record. Click "Add Service Posting" to add your service record.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add Service Posting -->
+<div class="modal fade" id="addServiceModal" tabindex="-1" aria-labelledby="addServiceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow border-0">
+      <form method="POST" action="{{ url_for('teacher.add_service_history') }}">
+        <div class="modal-header bg-punjab text-white py-3">
+          <h6 class="modal-title fw-bold" id="addServiceModalLabel">
+            <i class="bi bi-plus-circle me-1"></i> Add Service Posting Record
+          </h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-3 mb-3">
+            <div class="col-md-7">
+              <label class="form-label small fw-semibold">Designation / Post <span class="text-danger">*</span></label>
+              <input type="text" name="designation" class="form-control" placeholder="e.g. Primary School Teacher (PST)" required>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold">Basic Scale (BS) <span class="text-danger">*</span></label>
+              <select name="bs" class="form-select" required>
+                <option value="14" {% if teacher.current_bs == 14 %}selected{% endif %}>BS-14</option>
+                <option value="15" {% if teacher.current_bs == 15 %}selected{% endif %}>BS-15</option>
+                <option value="16" {% if teacher.current_bs == 16 %}selected{% endif %}>BS-16</option>
+                <option value="17" {% if teacher.current_bs == 17 %}selected{% endif %}>BS-17</option>
+                <option value="18" {% if teacher.current_bs == 18 %}selected{% endif %}>BS-18</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">School Name <span class="text-danger">*</span></label>
+              <input type="text" name="school_name" class="form-control" placeholder="e.g. Govt Primary School Model Town" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">District <span class="text-danger">*</span></label>
+              <input type="text" name="district" class="form-control" value="{{ teacher.district }}" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Tehsil</label>
+              <input type="text" name="tehsil" class="form-control" value="{{ teacher.tehsil }}">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">From Date <span class="text-danger">*</span></label>
+              <input type="date" name="from_date" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">To Date</label>
+              <input type="date" name="to_date" class="form-control">
+              <small class="text-muted">Leave empty if current posting</small>
+            </div>
+            <div class="col-md-4 d-flex align-items-center pt-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_current_post" id="add_is_current">
+                <label class="form-check-label small fw-semibold" for="add_is_current">
+                  Current School Posting
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-2">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Appointment Type</label>
+              <select name="appointment_type" class="form-select">
+                <option value="Regular" selected>Regular</option>
+                <option value="Promotion">Promotion</option>
+                <option value="Contract">Contract</option>
+                <option value="Ad-hoc">Ad-hoc</option>
+                <option value="Acting Charge">Acting Charge</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Order No</label>
+              <input type="text" name="order_no" class="form-control" placeholder="e.g. SED/APPT/2018/441">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Order Date</label>
+              <input type="date" name="order_date" class="form-control">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-2">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Official Remarks</label>
+              <textarea name="remarks" class="form-control" rows="2" placeholder="e.g. Appointment / Regularization / Transfer details"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer py-2 px-3 bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-punjab btn-sm">
+            <i class="bi bi-plus-circle me-1"></i> Save Service Posting
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmation Popup to Verify & Lock Data -->
+<div class="modal fade" id="verifyDataModal" tabindex="-1" aria-labelledby="verifyDataModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow border-0">
+      <form method="POST" action="{{ url_for('teacher.verify_my_data') }}">
+        <input type="hidden" name="next_url" value="{{ request.url }}">
+        <div class="modal-header bg-warning text-dark py-3">
+          <h6 class="modal-title fw-bold" id="verifyDataModalLabel">
+            <i class="bi bi-shield-lock-fill me-1"></i> Confirm &amp; Finalize Data Verification
+          </h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="alert alert-warning border-start border-4 border-warning mb-3">
+            <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Irreversible Direct Edit Lock:</h6>
+            <p class="small mb-0" style="line-height: 1.45;">
+              <strong>Once you verify your data, you cannot change existing records directly</strong>, and all further updates or corrections must be submitted through an official <strong>Edit / Correction Request</strong>.
+            </p>
+          </div>
+          <p class="small text-secondary mb-3">
+            Do you solemnly declare that all service history postings, stations, dates, and educational credentials on record are true, authentic, and complete according to your official departmental service book?
+          </p>
+          <div class="form-check p-2 bg-light rounded border">
+            <input class="form-check-input ms-1" type="checkbox" id="confirmServiceCheck" required>
+            <label class="form-check-label small fw-semibold text-dark ps-2" for="confirmServiceCheck">
+              I have thoroughly reviewed all my service &amp; educational records and confirm they are accurate.
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer py-2 px-3 bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel / Keep Reviewing</button>
+          <button type="submit" class="btn btn-warning btn-sm fw-bold">
+            <i class="bi bi-shield-check me-1"></i> Yes, Verify &amp; Lock My Data
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modals: Edit Existing Service Records -->
+{% for s in teacher.service_history %}
+<div class="modal fade" id="editServiceModal_{{ s.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow">
+      <form method="POST" action="{{ url_for('teacher.edit_service_history', service_id=s.id) }}">
+        <div class="modal-header bg-primary text-white py-2 px-3">
+          <h6 class="modal-title fw-bold">
+            <i class="bi bi-pencil-square me-1"></i> Edit Service Posting: {{ s.designation }}
+          </h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-3">
+          <div class="row g-3 mb-3">
+            <div class="col-md-7">
+              <label class="form-label small fw-semibold">Designation / Post <span class="text-danger">*</span></label>
+              <input type="text" name="designation" class="form-control form-control-sm" value="{{ s.designation }}" required>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold">Basic Scale (BS) <span class="text-danger">*</span></label>
+              <select name="bs" class="form-select form-select-sm" required>
+                <option value="14" {% if s.bs == 14 %}selected{% endif %}>BS-14</option>
+                <option value="15" {% if s.bs == 15 %}selected{% endif %}>BS-15</option>
+                <option value="16" {% if s.bs == 16 %}selected{% endif %}>BS-16</option>
+                <option value="17" {% if s.bs == 17 %}selected{% endif %}>BS-17</option>
+                <option value="18" {% if s.bs == 18 %}selected{% endif %}>BS-18</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">School Name <span class="text-danger">*</span></label>
+              <input type="text" name="school_name" class="form-control form-control-sm" value="{{ s.school_name }}" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">District <span class="text-danger">*</span></label>
+              <input type="text" name="district" class="form-control form-control-sm" value="{{ s.district }}" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Tehsil</label>
+              <input type="text" name="tehsil" class="form-control form-control-sm" value="{{ s.tehsil or '' }}">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">From Date <span class="text-danger">*</span></label>
+              <input type="date" name="from_date" class="form-control form-control-sm" value="{{ s.from_date.strftime('%Y-%m-%d') if s.from_date else '' }}" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">To Date</label>
+              <input type="date" name="to_date" class="form-control form-control-sm" value="{{ s.to_date.strftime('%Y-%m-%d') if s.to_date else '' }}">
+            </div>
+            <div class="col-md-4 d-flex align-items-center pt-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_current_post" id="edit_cur_{{ s.id }}" {% if s.is_current_post %}checked{% endif %}>
+                <label class="form-check-label small fw-semibold" for="edit_cur_{{ s.id }}">
+                  Current Posting
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-2">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Appointment Type</label>
+              <select name="appointment_type" class="form-select form-select-sm">
+                <option value="Regular" {% if s.appointment_type == 'Regular' %}selected{% endif %}>Regular</option>
+                <option value="Promotion" {% if s.appointment_type == 'Promotion' %}selected{% endif %}>Promotion</option>
+                <option value="Contract" {% if s.appointment_type == 'Contract' %}selected{% endif %}>Contract</option>
+                <option value="Ad-hoc" {% if s.appointment_type == 'Ad-hoc' %}selected{% endif %}>Ad-hoc</option>
+                <option value="Acting Charge" {% if s.appointment_type == 'Acting Charge' %}selected{% endif %}>Acting Charge</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Order No</label>
+              <input type="text" name="order_no" class="form-control form-control-sm" value="{{ s.order_no or '' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Order Date</label>
+              <input type="date" name="order_date" class="form-control form-control-sm" value="{{ s.order_date.strftime('%Y-%m-%d') if s.order_date else '' }}">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-2">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Official Remarks</label>
+              <textarea name="remarks" class="form-control form-control-sm" rows="2" placeholder="e.g. Appointment / Regularization / Transfer details">{{ s.remarks or '' }}</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer py-2 px-3">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-check-circle me-1"></i> Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}
